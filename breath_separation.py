@@ -19,7 +19,7 @@ def breath_separation(adc_data, target_adc):
     plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
     plt.plot(smoothed_signal, label='Smoothed')
 
-    plt.scatter(*zip(*local_maxima), color='red', label='Maxima')
+    plt.scatter(local_maxima, smoothed_signal[local_maxima], color='red', label='Maxima')
     plt.scatter(local_minima, smoothed_signal[local_minima], color='blue', label='Minima')
     plt.legend()
     plt.show()
@@ -31,15 +31,17 @@ def find_local_maxima(adc_data, target_adc=TARGET_ADC):
     maxima = []
     for i in range(len(adc_data.adc_normalized_data[target_adc])-2):
         if adc_data.adc_normalized_data[target_adc][i] < adc_data.adc_normalized_data[target_adc][i+1] > adc_data.adc_normalized_data[target_adc][i+2]:
-            maxima.append((i+1, adc_data.adc_normalized_data[target_adc][i+1])) #(index, value) tuple
+            maxima.append(i+1)
     return maxima
 
 #step 2 - curve smoothing between maxima
 def curve_smoothing(adc_data, peaks, target_adc=TARGET_ADC):
     smoothed_signal = adc_data.adc_normalized_data[target_adc].copy()
     for i in range(len(peaks)-1):
-        start_idx, start_val = peaks[i]
-        end_idx, end_val = peaks[i+1]
+        start_idx = peaks[i]
+        end_idx = peaks[i+1]
+        start_val = adc_data.adc_normalized_data[target_adc][start_idx]
+        end_val = adc_data.adc_normalized_data[target_adc][end_idx]
 
         x = np.arange(start_idx, end_idx+1)
         y = adc_data.adc_normalized_data[target_adc][start_idx:end_idx+1]
@@ -74,14 +76,14 @@ def curves_to_intervals(signal, target_adc=TARGET_ADC):
 #step 4 and 5 - finding local minima in a union of two specific intervals (3*a1_avg = a2_avg)
 def intervals_to_minima(maxima, interval_values, target_adc=TARGET_ADC):
     minima = []
-    if maxima[0][INDEX] != 0:
+    if maxima[0] != 0:
         minima.append(0)
     for i in range(len(maxima)-1):
-        turn_point = maxima[i][INDEX]+1
+        turn_point = maxima[i]+1
         rise_point = None #the three times rise point
         candidate_point = None
         point_found = False
-        while turn_point < maxima[i+1][INDEX] and not point_found: #when the derivative starts to grow
+        while turn_point < maxima[i+1] and not point_found: #when the derivative starts to grow
             if interval_values[turn_point-1] < interval_values[turn_point] and interval_values[turn_point] > 0:
                 candidate_point = turn_point
                 if 3*interval_values[turn_point-1] < interval_values[turn_point]:
