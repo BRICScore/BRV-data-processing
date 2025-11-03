@@ -3,8 +3,8 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-from helper_functions import u2_to_i, adc_to_voltage
-from signal_smoothing import *
+from helper_functions import *
+from breath_separation import *
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
