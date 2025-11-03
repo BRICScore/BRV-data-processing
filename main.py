@@ -134,9 +134,17 @@ def basic_feature_extraction(adc_data, input_file):
     #-----------------------------------------------------------------------------------
     plot_data(input_file, adc_data, avg_breath_depth)
     with open(f"./features/features_{input_file}.txt", 'w') as o_f:
-        o_f.write(f"breath count for {input_file}: {adc_data.breath_count} for {adc_data.timestamps[-1] - adc_data.timestamps[0]}ms -> {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)} bpm\n")
-        o_f.write(f"breath depth: {avg_breath_depth}\n")
-        o_f.write(f"breath depth std: {avg_breath_depth_std_dev*2}\n")
+        o_f.write(f"bpm: {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)}\n")
+        o_f.write(f"breath_depth: {avg_breath_depth}\n")
+        o_f.write(f"breath_depth_std: {avg_breath_depth_std_dev*2}\n")
+        o_f.write(f"belt_share: ")
+        for i in range(len(belt_share)):
+            o_f.write(f"{belt_share[i]} ")
+        o_f.write("\n")
+        o_f.write(f"belt_share_std: ")
+        for i in range(len(belt_share_std)):
+            o_f.write(f"{belt_share_std[i]} ")
+        o_f.write("\n")
 
     print(f"breath count for {input_file}: {adc_data.breath_count} for {adc_data.timestamps[-1] - adc_data.timestamps[0]}ms -> {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)} bpm")
     print(f"breath depth: {avg_breath_depth}")
