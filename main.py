@@ -25,6 +25,7 @@ class ADCdata:
         self.signal_minima = None
         self.signal_maxima = None
         self.non_outlier_adc_data = None
+        self.time_outlier_adc_data = None
         self.breath_count = 0
         self.avg_breath_depth = 0
         self.avg_breath_depth_std_dev = 0
@@ -122,11 +123,13 @@ def calculate_breathing_tract(adc_data):
     avg_sum_std = 0
     for i in range(1,ADC_COUNT+1):
         avg, avg_std = calculate_average_breath_depth(adc_data, target_adc=i)
+        # print(avg)
         avg_sum += avg
         avg_sum_std += avg_std
         belt_share[i-1] = avg
         belt_share_std[i-1] = avg_std
     belt_share /= avg_sum
+    # print("Belt share:", belt_share)
     belt_share_std /= avg_sum_std
     return belt_share, belt_share_std
 
