@@ -2,17 +2,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from sklearn.decomposition import PCA
+import json
+import random
 
-from main import ADC_COUNT
 NO_OF_FEATURES_AFTER_ALG = 2
-NO_OF_SCALARS = 3
-NO_OF_LINES = 5
 FEATURES_PATH = './features'
 
 class FeatureData():
     def __init__(self):
         self.feature_files = []
-        self.feature_files_count = 0
+        self.feature_colors = []
         self.features = None
         self.feature_count = None
         self.features_pca = None
@@ -23,31 +22,43 @@ def visualize_data():
     PCA_algorithm(feature_data)
     plot_pca_data(feature_data)
 
+def parse_features_line(line):
+    feature_vector = []
+    for key in line:
+        if isinstance(line[key], list):
+            for val in line[key]:
+                feature_vector.append(val)
+        else:
+            feature_vector.append(line[key])
+    return feature_vector
+
 def feature_loading(feature_data):
     features = []
+    color_index = 0
     file = None
     with os.scandir(FEATURES_PATH) as es:
         for e in es:
-            if e.is_file() and e.name.endswith('.txt'):
-                feature_data.feature_files.append(e.name)
-                feature_data.feature_files_count += 1
+            if e.is_file() and e.name.endswith('.jsonl'):
                 feature_vector = []
+                color = random.randrange(0, 2**24)
+                hex_color = hex(color)
+                rand_color = "#" + hex_color[2:]
                 with open(e.path, encoding='utf-8') as f:
                     file = f.read().split("\n")
-                for feature in range(NO_OF_SCALARS):
-                    feature_val = float(file[feature].split()[-1])
-                    feature_vector.append(feature_val)
-                for feature in range(NO_OF_SCALARS, NO_OF_LINES):
-                    for i in range(ADC_COUNT):
-                        feature_val = float(file[feature].split()[i+1])
-                        feature_vector.append(feature_val)
-                features.append(feature_vector)
+                    for f_line in file:
+                        if f_line != '': # last newline produces empty string
+                            feature_vector = parse_features_line(json.loads(f_line))
+                            features.append(feature_vector)
+                            feature_data.feature_colors.append(rand_color)
+                            feature_data.feature_files.append(e.name)
+                color_index += 1
     return np.array(features)
 
 def standarize_data(feature_data):
     feature_data.feature_count = len(feature_data.features[0])
     for i in range(feature_data.feature_count):
-        feature_data.features[:, i] = (feature_data.features[:, i] - np.mean(feature_data.features[:, i])) / np.std(feature_data.features[:, i])
+        std = np.std(feature_data.features[:, i]) # change the variance if 0 not to divide by it
+        feature_data.features[:, i] = (feature_data.features[:, i] - np.mean(feature_data.features[:, i])) / ( 1 if std == 0 else std)
 
 def PCA_algorithm(feature_data):
     standarize_data(feature_data)
@@ -55,14 +66,25 @@ def PCA_algorithm(feature_data):
     feature_data.features_pca = pca.fit_transform(feature_data.features)
 
 def plot_pca_data(feature_data):
-    plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
-    plt.scatter(feature_data.features_pca[:, 0], feature_data.features_pca[:, 1])
-    for i in range(feature_data.feature_files_count):
-        plt.text(feature_data.features_pca[i, 0], feature_data.features_pca[i, 1], feature_data.feature_files[i])
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
-    plt.show()
-
+    if NO_OF_FEATURES_AFTER_ALG == 2:
+        plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        plt.scatter(feature_data.features_pca[:, 0], feature_data.features_pca[:, 1], c=feature_data.feature_colors)
+        for i in range(len(feature_data.feature_files)):
+            plt.text(feature_data.features_pca[i, 0], feature_data.features_pca[i, 1], feature_data.feature_files[i])
+        plt.xlabel('Feature 1')
+        plt.ylabel('Feature 2')
+        plt.show()
+    if NO_OF_FEATURES_AFTER_ALG == 3:
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        ax.scatter(feature_data.features_pca[:,0], feature_data.features_pca[:,1], feature_data.features_pca[:,2])
+        for i in range(len(feature_data.feature_files)):
+            ax.text(feature_data.features_pca[i, 0], feature_data.features_pca[i, 1], feature_data.features_pca[i, 2], feature_data.feature_files[i])
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
+        plt.show()
 def main():
     visualize_data()
 
