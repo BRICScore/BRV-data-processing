@@ -32,6 +32,8 @@ class ADCdata:
         self.avg_breath_depth = 0
         self.avg_breath_depth_std_dev = 0
 
+        self.plot_enabled = False
+
 def parse_line_only_adc(line: str):
     parts = line.strip().split(',')
     hour = int(parts[0].split(':')[1])
@@ -93,8 +95,13 @@ def split_data_into_segments(input_file, adc_data):
         print(f"Segment {segment_index}: {segment_fill_percentage:.2f}% filled")
 
 def process_file(input_file):
-    
+
     adc_data = ADCdata()
+
+    try:
+        adc_data.plot_enabled = bool(sys.argv[2])    
+    except:
+        adc_data.plot_enabled = False
 
     handle_input_data(input_file, adc_data)
 

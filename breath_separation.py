@@ -115,11 +115,11 @@ def final_smoothing_with_splines(adc_data, smoothed_signal, target_adc=TARGET_AD
     smoothed_segment[-1] = smoothed_signal[-1]
 
     final_signal[0:len(smoothed_signal)] = smoothed_segment
-    
-    plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
-    plt.plot(smoothed_signal, label='Smoothed')
-    plt.plot(final_signal, label='Even more smoooooth')
-    plt.legend()
-    plt.show()
+    if adc_data.plot_enabled:
+        plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
+        plt.plot(smoothed_signal, label='Smoothed')
+        plt.plot(final_signal, label='Even more smoooooth')
+        plt.legend()
+        plt.show()
     
     return final_signal
