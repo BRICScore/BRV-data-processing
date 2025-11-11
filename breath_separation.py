@@ -25,7 +25,7 @@ def breath_separation(adc_data, target_adc):
     plt.scatter(local_minima, smoothed_signal[local_minima], color='blue', label='Minima')
     plt.legend()
     plt.show()
-
+    """
 
 #step 1 - finding local maxima
 def find_local_maxima(adc_data, target_adc=TARGET_ADC):
