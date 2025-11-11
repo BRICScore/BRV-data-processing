@@ -64,7 +64,7 @@ def calculate_breathing_tract(adc_data):
     belt_share_std /= avg_sum_std
     return belt_share, belt_share_std
 
-def basic_feature_extraction(adc_data, input_file, plot=True):
+def basic_feature_extraction(adc_data, input_file):
     count_breaths(adc_data)
     avg_breath_depth, avg_breath_depth_std_dev = calculate_average_breath_depth(adc_data)
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
@@ -72,7 +72,7 @@ def basic_feature_extraction(adc_data, input_file, plot=True):
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_(nr_segmentu)_person-conditions(sit,lay,run)_(nr_próbki)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
-    if plot:
+    if adc_data.plot_enabled:
         plot_data(input_file, adc_data, avg_breath_depth)
     with open(f"./features/features_{input_file}.jsonl", 'w') as o_f:
         o_f.write(f"{"{"}\"bpm\": {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)}, ")
@@ -94,7 +94,7 @@ def basic_feature_extraction(adc_data, input_file, plot=True):
     print(f"breath depth: {avg_breath_depth}")
     print(f"breath depth std: {avg_breath_depth_std_dev*2}")
 
-    if plot:
+    if adc_data.plot_enabled:
         plt.figure(figsize=(8,6))
         plt.title(f"{input_file} breath track")
         # TODO: substitute numbers with areas of the chest names
