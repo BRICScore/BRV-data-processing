@@ -2,6 +2,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
 from helper_functions import *
 from breath_separation import *
@@ -94,14 +95,12 @@ def split_data_into_segments(input_file, adc_data):
         segment_fill_percentage = (segment_fill_percentage*100 / SEGMENT_LENGTH_MS) * 100
         print(f"Segment {segment_index}: {segment_fill_percentage:.2f}% filled")
 
-def process_file(input_file):
-
+def process_file(parser):
+    args = parser.parse_args()
+    input_file = args.input_file
     adc_data = ADCdata()
 
-    try:
-        adc_data.plot_enabled = bool(sys.argv[2])    
-    except:
-        adc_data.plot_enabled = False
+    adc_data.plot_enabled = args.plot
 
     handle_input_data(input_file, adc_data)
 
@@ -116,10 +115,21 @@ def process_file(input_file):
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC)
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC)
 
-def main():
-    input_file = sys.argv[1]
+def parser_setup():
+    parser = argparse.ArgumentParser(description="Data parser and feature extractor")
 
-    process_file(input_file)
+    parser.add_argument('input_file', type=str,
+                    help='A required argument containing input file for the programme')
+
+    parser.add_argument('--plot', action='store_true',
+                    help='A boolean switch for the plotting')
+
+    return parser
+
+def main():
+    parser = parser_setup()
+
+    process_file(parser)
 
 
 if __name__ == "__main__":
