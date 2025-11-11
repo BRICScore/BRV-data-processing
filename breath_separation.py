@@ -15,6 +15,7 @@ def breath_separation(adc_data, target_adc):
     
     adc_data.signal_minima = local_minima
     adc_data.signal_maxima = local_maxima #step 6 - assigning those points to all signals (just save it in class)
+
     adc_data.smoothed_signal = final_smoothing_with_splines(adc_data, smoothed_signal, target_adc)
     """
     plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
@@ -24,7 +25,6 @@ def breath_separation(adc_data, target_adc):
     plt.scatter(local_minima, smoothed_signal[local_minima], color='blue', label='Minima')
     plt.legend()
     plt.show()
-    """
 
 
 #step 1 - finding local maxima
@@ -66,6 +66,7 @@ def curve_smoothing(adc_data, peaks, target_adc=TARGET_ADC):
 
         smoothed_signal[start_idx:end_idx+1] = smoothed_segment
     return smoothed_signal
+
 #step 3 - dividing the smoothed curves in subintervals and calculating average value for all of them
 def curves_to_intervals(signal, target_adc=TARGET_ADC):
     interval_values = np.zeros(shape=(len(signal)-1))

@@ -5,7 +5,9 @@ import numpy as np
 
 from helper_functions import *
 from breath_separation import *
+
 from feature_extraction import *
+from outlier_detection import *
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
@@ -21,10 +23,14 @@ class ADCdata:
         self.adc_output_data = [np.array([]) for _ in range(ADC_COUNT)]
         self.adc_normalized_data = [np.array([]) for _ in range(ADC_COUNT)]
         self.adc_voltage_means = []
+        self.smoothed_signal = None
+        self.signal_minima = None
+        self.signal_maxima = None
+        self.non_outlier_adc_data = None
+        self.time_outlier_adc_data = None
         self.breath_count = 0
         self.avg_breath_depth = 0
         self.avg_breath_depth_std_dev = 0
-
 
 def parse_line_only_adc(line: str):
     parts = line.strip().split(',')
@@ -101,6 +107,7 @@ def process_file(input_file):
     basic_feature_extraction(adc_data, input_file)
     # breath separation as described in the paper
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC)
+    outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC)
 
 def main():
     input_file = sys.argv[1]
