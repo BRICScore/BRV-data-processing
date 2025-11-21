@@ -11,3 +11,5 @@ TARGET_ADC = 3
 INDEX = 0
 
 PERCENTILE_THRESHOLD = 15  # % for both lower and upper bounds
+
+RESAMPLE_NODE_COUNT = 200

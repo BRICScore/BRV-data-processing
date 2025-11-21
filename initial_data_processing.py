@@ -3,7 +3,6 @@ import json
 
 from helper_functions import *
 from breath_separation import *
-
 from feature_extraction import *
 from outlier_detection import *
 
@@ -86,7 +85,6 @@ def process_file(parser):
             adc_data.adc_normalized_data[i] -= adc_data.adc_voltage_means[i]
 
     handle_results_data(input_file, adc_data)
-    basic_feature_extraction(adc_data, input_file)
-    # breath separation as described in the paper
-    breath_separation(adc_data=adc_data, target_adc=TARGET_ADC)
-    outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC)
+    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
+    outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py

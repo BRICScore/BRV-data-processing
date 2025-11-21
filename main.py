@@ -19,6 +19,5 @@ def main():
 
     process_file(parser)
 
-
 if __name__ == "__main__":
     main()

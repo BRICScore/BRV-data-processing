@@ -10,10 +10,13 @@ class ADCdata:
         self.smoothed_signal = None
         self.signal_minima = None
         self.signal_maxima = None
-        self.non_outlier_adc_data = None
+        self.non_time_outlier_adc_data = None
         self.time_outlier_adc_data = None
+        self.non_amplitude_outlier_adc_data = None
+        self.amplitude_outlier_adc_data = None
         self.breath_count = 0
         self.avg_breath_depth = 0
         self.avg_breath_depth_std_dev = 0
+        self.cleaned_and_resampled_adc_data = None
 
         self.plot_enabled = False
