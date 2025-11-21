@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from main import ADC_COUNT, TARGET_ADC
+from config import *
 
 def plot_data(input_file, adc_data, avg_breath_depth):
     plt.figure(figsize=(15, 10))

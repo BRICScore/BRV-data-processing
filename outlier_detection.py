@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
 
-PERCENTILE_THRESHOLD = 15  # % for both lower and upper bounds
+from scipy.interpolate import interp1d
+from config import *
 
 def time_outliers(adc_data, target_adc):
     
@@ -49,6 +49,7 @@ def time_outliers(adc_data, target_adc):
         adc_data.time_outlier_adc_data[start_index:end_index] = adc_data.non_outlier_adc_data[start_index:end_index]
         adc_data.non_outlier_adc_data[start_index:end_index] = np.nan
     if adc_data.plot_enabled:
+        plt.title("Time outliers")
         plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[target_adc], label='Original')
         for breath in outlier_breaths:
             plt.axvspan(breath[0], breath[0] + breath[1], color='red', alpha=0.3)
@@ -80,6 +81,7 @@ def amplitude_outliers(adc_data, target_adc):
     upper_bound = np.percentile(amplitudes, 100 - PERCENTILE_THRESHOLD)
     if adc_data.plot_enabled:
         # for now plot adc_data and mark breaths with amplitude outliers
+        plt.title("Amplitude outliers")
         plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[target_adc], label='Original Signal')
         for breath in breath_amplitudes:
             if breath[3] < lower_bound or breath[3] > upper_bound:

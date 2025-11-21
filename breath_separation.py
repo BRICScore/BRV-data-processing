@@ -1,9 +1,8 @@
 import numpy as np
-from scipy.interpolate import UnivariateSpline, BSpline, splrep
 import matplotlib.pyplot as plt
 
-TARGET_ADC = 3
-INDEX = 0
+from scipy.interpolate import UnivariateSpline, BSpline, splrep
+from config import *
 
 def breath_separation(adc_data, target_adc):
     local_maxima = find_local_maxima(adc_data=adc_data, target_adc=target_adc)
