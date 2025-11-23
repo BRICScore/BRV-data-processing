@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import math
 from config import *
 
 def plot_data(input_file, adc_data, avg_breath_depth):
@@ -68,13 +68,53 @@ def calculate_breathing_tract(adc_data):
 
 # calculate by detecting where the data increases significantly
 def detect_expiratory_pause(adc_data):
+    # value to detect gradual slope as termination point
+    # apart from detecting it by flipping the sign of derivative
+    sensitivity = 0.5
+
     adc_data.breath_minimum_indices = []
     adc_data.breath_minima = []
+    for i in range(len(adc_data.exhale_points)):
+        minimum = adc_data.exhale_point_indices[i] + 2 # offset to counteract faulty exhale points
+        pointFound = False
+        while not pointFound:
+            val_current = adc_data.adc_normalized_data[TARGET_ADC-1][minimum]
+            val_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+1]
+            val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+2]
+            if val_current > val_next:
+                if val_next > val_after_next:
+                    minimum += 1
+                else:
+                    pointFound = True
+                    minimum += 1
+        adc_data.breath_minimum_indices.append(minimum)
+        adc_data.breath_minima.append(adc_data.adc_normalized_data[TARGET_ADC-1][minimum])
 
 # wait for data to stop decreasing
 def detect_exhale(adc_data):
     adc_data.exhale_point_indices = []
     adc_data.exhale_points = []
+    for i in range(len(adc_data.breath_peaks)):
+        exhale_point = adc_data.breath_peak_indices[i]
+        pointFound = False
+        while not pointFound:
+            val_current = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point]
+            val_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+1]
+            val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+2]
+            val_after_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+3]
+
+            if val_current > val_next:
+                if val_next > val_after_next:
+                    if val_after_next > val_after_after_next:
+                        pointFound = True
+                    else:
+                        exhale_point += 1
+                else:
+                    exhale_point += 1
+            else:
+                exhale_point += 1
+        adc_data.exhale_point_indices.append(exhale_point)
+        adc_data.exhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point])
 
 # calculate by detecting where the data drops significantly
 def detect_inspiratory_pause(adc_data):
@@ -83,15 +123,39 @@ def detect_inspiratory_pause(adc_data):
 
 # calculate start by going from the maxima backwards
 def detect_inhale(adc_data):
+    # value to detect gradual slope as termination point
+    # apart from detecting it by flipping the sign of derivative
+    sensitivity = 0.5
+
     adc_data.inhale_point_indices = []
     adc_data.inhale_points = []
+    for i in range(len(adc_data.breath_peaks)):
+        inhale_point = adc_data.breath_peak_indices[i]
+        pointFound = False
+        while not pointFound:
+            val_current = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point]
+            val_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-1]
+            val_before_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-2]
+            if val_current > val_prev:
+                if val_prev > val_before_prev:
+                    inhale_point -= 1
+                else:
+                    pointFound = True
+                    inhale_point -= 1
+        adc_data.inhale_point_indices.append(inhale_point)
+        adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point])
 
 # calculations assuming local maxima is the end of inhale and start of inspiratory pause
+# this function returns avg duration of each of the 4 breathing phases
 def calculate_breathing_phases(adc_data):
     detect_inhale(adc_data)
     detect_inspiratory_pause(adc_data)
     detect_exhale(adc_data)
     detect_expiratory_pause(adc_data)
+    phases_values = []
+    pass
+    return phases_values
+
 
 def display_calculated_breath_phases(adc_data):
     plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC-1])
