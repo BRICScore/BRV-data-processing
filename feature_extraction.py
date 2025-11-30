@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import math
+
 from config import *
 
 def plot_data(input_file, adc_data, avg_breath_depth):
@@ -65,6 +65,34 @@ def calculate_breathing_tract(adc_data):
     belt_share /= avg_sum
     belt_share_std /= avg_sum_std
     return belt_share, belt_share_std
+
+def detect_ep_end(adc_data):
+    adc_data.breath_end_points = []
+    adc_data.breath_end_point_indices = []
+    for i in range(len(adc_data.breath_minima)):
+        breath_end = adc_data.breath_minimum_indices[i]
+        pointFound = False
+        while not pointFound:
+            try:
+                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+2]
+            except:
+                val_current = 0.0
+                val_next = 0.0
+                val_after_next = 0.0
+            if val_current < val_next:
+                if val_next < val_after_next:
+                    pointFound = True
+                else:
+                    breath_end += 1
+            else:
+                breath_end += 1
+            if breath_end == 0 or breath_end >= len(adc_data.timestamps)-1:
+                break
+        breath_end = min(breath_end, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
+        adc_data.breath_end_point_indices.append(breath_end)
+        adc_data.breath_end_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][breath_end])
 
 # calculate by detecting where the data increases significantly
 def detect_expiratory_pause(adc_data):
@@ -170,6 +198,7 @@ def calculate_breathing_phases(adc_data):
     detect_inspiratory_pause(adc_data)
     detect_exhale(adc_data)
     detect_expiratory_pause(adc_data)
+    detect_ep_end(adc_data)
     phases_values = [0.0, 0.0, 0.0, 0.0]
     NPtimestamps = np.array(adc_data.timestamps)
     number_of_breaths = len(adc_data.breath_peaks)
@@ -177,14 +206,17 @@ def calculate_breathing_phases(adc_data):
         phases_values[0] += NPtimestamps[adc_data.breath_peak_indices[i]] - NPtimestamps[adc_data.inhale_point_indices[i]]
         phases_values[1] += NPtimestamps[adc_data.exhale_point_indices[i]] - NPtimestamps[adc_data.breath_peak_indices[i]]
         phases_values[2] += NPtimestamps[adc_data.breath_minimum_indices[i]] - NPtimestamps[adc_data.exhale_point_indices[i]]
+        phases_values[3] += NPtimestamps[adc_data.breath_end_point_indices[i]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
+        # until outliers are not dealt with
+        """
         if i != number_of_breaths-1:
             phases_values[3] += NPtimestamps[adc_data.inhale_point_indices[i+1]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
+        """
     phases_values[0] /= number_of_breaths
     phases_values[1] /= number_of_breaths
     phases_values[2] /= number_of_breaths
-    phases_values[3] /= number_of_breaths-1
+    phases_values[3] /= number_of_breaths
     return phases_values
-
 
 def display_calculated_breath_phases(adc_data):
     plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC-1])
@@ -193,6 +225,7 @@ def display_calculated_breath_phases(adc_data):
     plt.scatter(NPtimestamps[adc_data.breath_peak_indices], adc_data.breath_peaks, c="red") # start of IP
     plt.scatter(NPtimestamps[adc_data.exhale_point_indices], adc_data.exhale_points, c="green") # start of exhale
     plt.scatter(NPtimestamps[adc_data.breath_minimum_indices], adc_data.breath_minima, c="magenta") # start of EP
+    plt.scatter(NPtimestamps[adc_data.breath_end_point_indices], adc_data.breath_end_points, c="yellow") # start of EP
     plt.legend(["signal","inhale start", "IP start", "exhale start", "EP start"])
     plt.xlabel("timestamp [ms]")
     plt.ylabel("signal deviation from average value")
@@ -205,11 +238,11 @@ def basic_feature_extraction(adc_data, input_file):
     display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
-    # nazewnictwo: feature_(nr_segmentu)_person-conditions(sit,lay,run)_(nr_próbki)
+    # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if adc_data.plot_enabled:
         plot_data(input_file, adc_data, avg_breath_depth)
-    with open(f"./features/features_{input_file}.jsonl", 'w') as o_f:
+    with open(f"./features/features_{input_file}", 'w') as o_f:
         o_f.write(f"{"{"}\"bpm\": {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)}, ")
         o_f.write(f"\"breath_depth\": {avg_breath_depth}, ")
         o_f.write(f"\"breath_depth_std\": {avg_breath_depth_std_dev*2}, ")
