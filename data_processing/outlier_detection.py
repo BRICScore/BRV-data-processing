@@ -1,13 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy.interpolate import interp1d
+import scipy.interpolate as spi
+import copy
 from config import *
 
-def resample_curve(y, new_len=100):
+def resample_data(y, new_len=100):
     x_old = np.linspace(0, 1, len(y))
-    x_new = np.linspace(0, 1, new_len)
-    f = interp1d(x_old, y, kind='cubic')
+    x_new =  np.linspace(0, 1, new_len)
+    # f = spi.CubicSpline(x_old, old_y)
+    f = spi.interp1d(x_old, y, kind='cubic')
     return f(x_new)
 
 def time_outliers(adc_data, target_adc):
@@ -117,40 +118,80 @@ def amplitude_outliers(adc_data, target_adc):
         plt.show()
 
 def remove_outliers_and_remake_signal(adc_data, target_adc):
-    oryginal_signal = adc_data.adc_normalized_data[target_adc].copy()
+    oryginal_signal = copy.deepcopy(adc_data.adc_normalized_data)
     non_time_outlier_signal = adc_data.non_time_outlier_adc_data
     non_amplitude_outlier_signal = adc_data.non_amplitude_outlier_adc_data
 
-    for i in range(len(oryginal_signal)):
+    for i in range(len(oryginal_signal[target_adc])):
         if np.isnan(non_time_outlier_signal[i]) or np.isnan(non_amplitude_outlier_signal[i]):
-            oryginal_signal[i] = np.nan
+            for j in range(ADC_COUNT):
+                oryginal_signal[j][i] = np.nan
 
     if adc_data.plot_enabled:
         plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[target_adc], label='Original Signal', color='gray')
-        plt.plot(adc_data.timestamps, oryginal_signal, label='Cleaned Signal', color='blue')
+        plt.plot(adc_data.timestamps, oryginal_signal[target_adc], label='Cleaned Signal', color='blue')
         plt.title("Clean adc_normalized_data")
         plt.legend()
         plt.show()
 
-    clen_adc_normalized_data = ([], [])
-    for i in range(len(oryginal_signal)):
-        if not np.isnan(oryginal_signal[i]):
+
+    clen_adc_normalized_data = ([], [], [], [], [], [])
+    for i in range(len(oryginal_signal[target_adc])):
+        if not np.isnan(oryginal_signal[target_adc][i]):
             clen_adc_normalized_data[0].append(adc_data.timestamps[i])
-            clen_adc_normalized_data[1].append(oryginal_signal[i])
+            for j in range(ADC_COUNT):
+                clen_adc_normalized_data[j+1].append(oryginal_signal[j][i])
 
-    resampled_signal = resample_curve(clen_adc_normalized_data[1], RESAMPLE_NODE_COUNT)
-    
+    # resampling the signal BUT
+    # we go like this:
+    # for each NaN filled hole we calculate it's length and subtract it from timestamps of all nodes after it
+    # only after we get this NaN free signal we resample it to RESAMPLE_NODE_COUNT nodes
+    nan_adjusted_timestamps = []
+    nan_adjusted_data = [], [], [], [], []
+    total_time_shift = 0
+    first_nan_timestamp = None
+    for i in range(len(adc_data.timestamps)):
+        if not np.isnan(oryginal_signal[target_adc][i]):
+            if first_nan_timestamp is not None:
+                time_shift = adc_data.timestamps[i] - first_nan_timestamp
+                total_time_shift += time_shift
+                adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
+                nan_adjusted_timestamps.append(adjusted_timestamp)
+                print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
+                for j in range(ADC_COUNT):
+                    nan_adjusted_data[j].append(oryginal_signal[j][i])
+                first_nan_timestamp = None
+            else:
+                adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
+                nan_adjusted_timestamps.append(adjusted_timestamp)
+                for j in range(ADC_COUNT):
+                    nan_adjusted_data[j].append(oryginal_signal[j][i])
+        else:
+            if first_nan_timestamp is None:
+                first_nan_timestamp = adc_data.timestamps[i]
+            
+
+    if adc_data.plot_enabled:        
+        plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
+        plt.title("NaN adjusted timestamps")
+        plt.legend()
+        plt.show()
+
+    # resampling and smoothing the data while keeping the same timestamps
+    resampled_data = [[] for _ in range(ADC_COUNT)]
+    for i in range(ADC_COUNT):
+        resampled_data[i] = resample_data(nan_adjusted_data[i], RESAMPLE_NODE_COUNT)
+    resampled_timestamps = resample_data(nan_adjusted_timestamps, RESAMPLE_NODE_COUNT)
+
     if adc_data.plot_enabled:
-        print(f"new node lenght: {len(clen_adc_normalized_data[0])}")
-        plt.plot(clen_adc_normalized_data[0], clen_adc_normalized_data[1])
-        plt.title("Cleaned adc_normalized_data")
+        plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
+        plt.plot(resampled_timestamps, resampled_data, label='Resampled Signal', color='orange')
+        plt.title("Resampled Signal")
+        plt.legend()
         plt.show()
 
-        plt.plot(np.linspace(0, 1, len(resampled_signal)), resampled_signal)
-        plt.title("Resampled cleaned adc_normalized_data")
-        plt.show()
-
-    adc_data.cleaned_and_resampled_adc_data = resampled_signal
+    adc_data.final_adc_data = resampled_data
+    adc_data.final_adc_timestamps = resampled_timestamps
 
 def outlier_detection(adc_data, target_adc):
     time_outliers(adc_data, target_adc)

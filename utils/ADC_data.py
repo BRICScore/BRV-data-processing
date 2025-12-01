@@ -17,6 +17,7 @@ class ADCdata:
         self.breath_count = 0
         self.avg_breath_depth = 0
         self.avg_breath_depth_std_dev = 0
-        self.cleaned_and_resampled_adc_data = None
+        self.final_adc_data = None
+        self.final_adc_timestamps = None
 
         self.plot_enabled = False
