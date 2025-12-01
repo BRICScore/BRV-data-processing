@@ -1,14 +1,19 @@
 import numpy as np
 import json
 
-from helper_functions import *
 from breath_separation import *
-from feature_extraction import *
+# from feature_extraction import *
 from outlier_detection import *
 
 from ADC_data import ADCdata
 from config import *
 
+def u2_to_i(value, b1, b2, b3):
+    value = (b1 << 16) | (b2 << 8) | b3
+    return value - (1 << 24) if value & (1 << 23) else value
+
+def adc_to_voltage(adc_value):
+    return (adc_value + 2**23) * 10**(-9) * 23.84
 
 def parse_line_only_adc(line: str):
     parts = line.strip().split(',')
@@ -92,4 +97,4 @@ def process_file(parser):
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
     split_data_into_segments(input_file, adc_data)
-    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    # basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py

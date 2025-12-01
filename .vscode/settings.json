@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./data_processing",
+        "./utils",
+        "./feature_processing"
+    ]
+}

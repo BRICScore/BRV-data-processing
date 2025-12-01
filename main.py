@@ -1,4 +1,8 @@
 import argparse
+import sys
+sys.path.append("data_processing")
+sys.path.append("feature_processing")
+sys.path.append("utils")
 
 from initial_data_processing import process_file
 from config import *
