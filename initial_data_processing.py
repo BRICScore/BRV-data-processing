@@ -82,14 +82,14 @@ def process_file(parser):
     adc_data.plot_enabled = args.plot
 
     handle_input_data(input_file, adc_data)
-    split_data_into_segments(input_file, adc_data)
 
     for i in range(ADC_COUNT):
             mean_voltage = np.mean(adc_data.adc_normalized_data[i])
             adc_data.adc_voltage_means.append(round(mean_voltage, 10))
             adc_data.adc_normalized_data[i] -= adc_data.adc_voltage_means[i]
 
-    handle_results_data(input_file, adc_data)
-    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    # handle_results_data(input_file, adc_data)
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
+    split_data_into_segments(input_file, adc_data)
+    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
