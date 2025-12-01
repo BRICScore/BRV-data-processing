@@ -77,7 +77,7 @@ def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 3:
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
-        ax.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
         ax.scatter(feature_data.features_pca[:,0], feature_data.features_pca[:,1], feature_data.features_pca[:,2])
         for i in range(len(feature_data.feature_files)):
             ax.text(feature_data.features_pca[i, 0], feature_data.features_pca[i, 1], feature_data.features_pca[i, 2], feature_data.feature_files[i])

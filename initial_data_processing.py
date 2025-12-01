@@ -53,17 +53,21 @@ def handle_results_data(input_file, adc_data):
 def split_data_into_segments(input_file, adc_data):
     segment_index = 0
     total_segments = int(np.ceil(adc_data.timestamps[-1] / SEGMENT_LENGTH_MS))
+    filename = input_file.split("_")
+    time = filename[1]
+    person = filename[2]
+    condition = filename[3]
+    no_of_sample = filename[4]
     for segment_index in range(total_segments):
         segment_start = segment_index * SEGMENT_LENGTH_MS
         segment_end = segment_start + SEGMENT_LENGTH_MS
         segment_fill_percentage = 0
-        with open(f"./results/results_{input_file}_segment_{segment_index}.jsonl", 'w') as o_f:
+        with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split(".")[0]}.jsonl", 'w') as o_f:
             for i in range(len(adc_data.timestamps)):
                 if segment_start <= adc_data.timestamps[i] < segment_end:
                     record = {
                         "timestamp": int(adc_data.timestamps[i]),
-                        "adc_outputs": [int(adc_data.adc_output_data[a][i]) for a in range(ADC_COUNT)],
-                        "adc_voltages": [float(adc_data.adc_voltage_data[a][i]) for a in range(ADC_COUNT)],
+                        "adc_outputs": [adc_data.adc_normalized_data[a][i] for a in range(ADC_COUNT)]
                     }
                     o_f.write(json.dumps(record) + "\n")
                     segment_fill_percentage += 1
@@ -84,7 +88,8 @@ def process_file(parser):
             adc_data.adc_voltage_means.append(round(mean_voltage, 10))
             adc_data.adc_normalized_data[i] -= adc_data.adc_voltage_means[i]
 
-    handle_results_data(input_file, adc_data)
-    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    # handle_results_data(input_file, adc_data)
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
+    split_data_into_segments(input_file, adc_data)
+    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
