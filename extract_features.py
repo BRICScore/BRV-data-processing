@@ -30,6 +30,8 @@ with os.scandir(RESULTS_PATH) as es:
             feature_vector = []
             with open(e.path, encoding='utf-8') as f:
                 file = f.read().split("\n")
+                #print("len:",len(file))
+                #print("threshold:", (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS))
                 if len(file) < (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS):
                     continue
                 for f_line in file:

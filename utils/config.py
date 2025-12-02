@@ -6,7 +6,7 @@ ADC_COUNT = 5
 TARGET_ADC = 3  # ADC to analyze for functions
 
 SEGMENT_LENGTH_MS = 120_000 # 2-minute segments
-ACCEPTABLE_DATA_LOSS = 20 # percentage threshold for the data to be analyzed
+ACCEPTABLE_DATA_LOSS = 0.2 # fraction threshold for the data to be analyzed
 
 TARGET_ADC = 3
 INDEX = 0

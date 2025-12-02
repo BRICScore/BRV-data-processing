@@ -36,7 +36,7 @@ def count_breaths(adc_data):
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     breath_peaks = []
     breath_peak_indices = []
-    last_peak_was_x_ago = 0
+    last_peak_was_x_ago = 21
     min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
     for i in range(1,len(adc_data.adc_normalized_data[target_adc-1])-1):
@@ -48,6 +48,10 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
         last_peak_was_x_ago += 1
     adc_data.breath_peaks = breath_peaks
     adc_data.breath_peak_indices = breath_peak_indices
+    try:
+        breath_peaks[0]
+    except:
+        breath_peaks.append(min_value_for_peak) # in case peaks are empty give it minimum value
     avg_breath_depth = np.mean(breath_peaks)
     avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc-1])
     return avg_breath_depth, avg_breath_depth_std_dev
@@ -59,12 +63,14 @@ def calculate_breathing_tract(adc_data):
     avg_sum_std = 0
     for i in range(1,ADC_COUNT+1):
         avg, avg_std = calculate_average_breath_depth(adc_data, target_adc=i)
+        #print(avg)
         avg_sum += avg
         avg_sum_std += avg_std
         belt_share[i-1] = avg
         belt_share_std[i-1] = avg_std
     belt_share /= avg_sum
     belt_share_std /= avg_sum_std
+    #print(belt_share)
     return belt_share, belt_share_std
 
 def detect_ep_end(adc_data):
