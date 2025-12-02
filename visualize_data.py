@@ -28,6 +28,8 @@ def parse_features_line(line):
         if isinstance(line[key], list):
             for val in line[key]:
                 feature_vector.append(val)
+        elif isinstance(line[key], str):
+            print(f"{line[key]}")
         else:
             feature_vector.append(line[key])
     return feature_vector
@@ -42,7 +44,10 @@ def feature_loading(feature_data):
                 feature_vector = []
                 color = random.randrange(0, 2**24)
                 hex_color = hex(color)
-                rand_color = "#" + hex_color[2:]
+                color_part = hex_color[2:]
+                while len(color_part) < 6:
+                    color_part = "0" + color_part
+                rand_color = "#" + color_part
                 with open(e.path, encoding='utf-8') as f:
                     file = f.read().split("\n")
                     for f_line in file:
@@ -50,7 +55,7 @@ def feature_loading(feature_data):
                             feature_vector = parse_features_line(json.loads(f_line))
                             features.append(feature_vector)
                             feature_data.feature_colors.append(rand_color)
-                            feature_data.feature_files.append(e.name)
+                    feature_data.feature_files.append(e.name)
                 color_index += 1
     return np.array(features)
 

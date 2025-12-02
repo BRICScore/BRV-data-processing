@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from config import *
+PERSON_ID = 3
 
 def plot_data(input_file, adc_data, avg_breath_depth):
     plt.figure(figsize=(15, 10))
@@ -120,6 +121,8 @@ def detect_expiratory_pause(adc_data):
                 else:
                     pointFound = True
                     minimum += 1
+            else:
+                minimum += 1
             if minimum == 0 or minimum >= len(adc_data.timestamps)-1:
                 break
         minimum = min(minimum, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
@@ -186,7 +189,9 @@ def detect_inhale(adc_data):
                 else:
                     pointFound = True
                     inhale_point -= 1
-            if inhale_point == 0 or inhale_point == len(adc_data.timestamps)-1:
+            else:
+                inhale_point -= 1
+            if inhale_point <= 0 or inhale_point == len(adc_data.timestamps)-1:
                 break
         adc_data.inhale_point_indices.append(inhale_point)
         adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point])
@@ -225,24 +230,24 @@ def display_calculated_breath_phases(adc_data):
     plt.scatter(NPtimestamps[adc_data.breath_peak_indices], adc_data.breath_peaks, c="red") # start of IP
     plt.scatter(NPtimestamps[adc_data.exhale_point_indices], adc_data.exhale_points, c="green") # start of exhale
     plt.scatter(NPtimestamps[adc_data.breath_minimum_indices], adc_data.breath_minima, c="magenta") # start of EP
-    plt.scatter(NPtimestamps[adc_data.breath_end_point_indices], adc_data.breath_end_points, c="yellow") # start of EP
+    plt.scatter(NPtimestamps[adc_data.breath_end_point_indices], adc_data.breath_end_points, c="yellow") # end of EP
     plt.legend(["signal","inhale start", "IP start", "exhale start", "EP start"])
     plt.xlabel("timestamp [ms]")
     plt.ylabel("signal deviation from average value")
     plt.show()
 
-def basic_feature_extraction(adc_data, input_file):
+def basic_feature_extraction(adc_data, input_file="test.txt"):
     count_breaths(adc_data)
     avg_breath_depth, avg_breath_depth_std_dev = calculate_average_breath_depth(adc_data)
     phases_avg_values = calculate_breathing_phases(adc_data)
-    display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
+    # display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if adc_data.plot_enabled:
         plot_data(input_file, adc_data, avg_breath_depth)
-    with open(f"./features/features_{input_file}", 'w') as o_f:
+    with open(f"./features/extracted_features.jsonl", 'a') as o_f:
         o_f.write(f"{"{"}\"bpm\": {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)}, ")
         o_f.write(f"\"breath_depth\": {avg_breath_depth}, ")
         o_f.write(f"\"breath_depth_std\": {avg_breath_depth_std_dev*2}, ")
@@ -263,7 +268,9 @@ def basic_feature_extraction(adc_data, input_file):
             o_f.write(f"{phases_avg_values[i]}")
             if i != len(phases_avg_values)-1:
                 o_f.write(", ")
-        o_f.write("]}\n")
+        o_f.write("], ")
+        o_f.write(f"\"person\": \"{input_file.split("_")[PERSON_ID]}\"")
+        o_f.write("}\n")
     print(f"breath count for {input_file}: {adc_data.breath_count} for {adc_data.timestamps[-1] - adc_data.timestamps[0]}ms -> {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)} bpm")
     print(f"breath depth: {avg_breath_depth}")
     print(f"breath depth std: {avg_breath_depth_std_dev*2}")
