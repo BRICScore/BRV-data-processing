@@ -3,6 +3,7 @@ import json
 
 from breath_separation import *
 # from feature_extraction import *
+from feature_extraction import basic_feature_extraction
 from outlier_detection import *
 
 from ADC_data import ADCdata
@@ -97,4 +98,4 @@ def process_file(parser):
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
     split_data_into_segments(input_file, adc_data)
-    # basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py

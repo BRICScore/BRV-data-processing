@@ -185,7 +185,7 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
 
     if adc_data.plot_enabled:
         plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
-        plt.plot(resampled_timestamps, resampled_data, label='Resampled Signal', color='orange')
+        plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
         plt.title("Resampled Signal")
         plt.legend()
         plt.show()
