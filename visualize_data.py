@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 import json
 import random
 
-NO_OF_FEATURES_AFTER_ALG = 2
+NO_OF_FEATURES_AFTER_ALG = 3
 FEATURES_PATH = './features'
 
 class FeatureData():
@@ -24,7 +24,7 @@ class FeatureData():
 def visualize_data():
     feature_data = FeatureData()
     # feature_data.features = feature_loading(feature_data)
-    feature_data.features = feature_loading(feature_data)
+    feature_data.features = feature_loading(feature_data) # type: ignore
     PCA_algorithm(feature_data)
     plot_pca_data(feature_data)
 
@@ -91,6 +91,7 @@ def plot_pca_data(feature_data):
         plt.show()
     if NO_OF_FEATURES_AFTER_ALG >= 3:
         feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"}
+
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
@@ -100,24 +101,24 @@ def plot_pca_data(feature_data):
         ax.legend(feature_data.person_initials)
         ax.set_xlabel('Feature 1')
         ax.set_ylabel('Feature 2')
-        ax.set_zlabel('Feature 3')
+        ax.set_zlabel('Feature 3') # type: ignore
         plt.show()
-        """
-        feature_numbers = []
-        for i in range(NO_OF_FEATURES_AFTER_ALG):
-            feature_numbers.append(i)
-        graph_dimensions = list(itertools.combinations(feature_numbers,2))
-        print(graph_dimensions)
-        for graph in graph_dimensions:
-            plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
-            for person in feature_data.person_initials:
-                records = feature_data.features_pca[feature_data.person_indices[person]]
-                plt.scatter(records[:,graph[0]], records[:,graph[1]], c=feature_data.person_colors[person])
-            plt.legend(feature_data.person_initials)
-            plt.xlabel(f'Feature {graph[0]}')
-            plt.ylabel(f'Feature {graph[1]}')
-            plt.show()
-        """
+
+        # feature_numbers = []
+        # for i in range(NO_OF_FEATURES_AFTER_ALG):
+        #     feature_numbers.append(i)
+        # graph_dimensions = list(itertools.combinations(feature_numbers,2))
+        # print(graph_dimensions)
+        # for graph in graph_dimensions:
+        #     plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        #     for person in feature_data.person_initials:
+        #         records = feature_data.features_pca[feature_data.person_indices[person]]
+        #         plt.scatter(records[:,graph[0]], records[:,graph[1]], c=feature_data.person_colors[person])
+        #     plt.legend(feature_data.person_initials)
+        #     plt.xlabel(f'Feature {graph[0]}')
+        #     plt.ylabel(f'Feature {graph[1]}')
+        #     plt.show()
+
 def main():
     visualize_data()
 

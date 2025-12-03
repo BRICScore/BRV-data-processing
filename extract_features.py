@@ -32,8 +32,8 @@ with os.scandir(RESULTS_PATH) as es:
                 file = f.read().split("\n")
                 #print("len:",len(file))
                 #print("threshold:", (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS))
-                if len(file) < (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS):
-                    continue
+                # if len(file) < (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS):
+                #     continue
                 for f_line in file:
                     if f_line != '': # last newline produces empty string
                         feature_vector = parse_results_line(json.loads(f_line))

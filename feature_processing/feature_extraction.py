@@ -214,10 +214,10 @@ def calculate_breathing_phases(adc_data):
     NPtimestamps = np.array(adc_data.timestamps)
     number_of_breaths = len(adc_data.breath_peaks)
     for i in range(number_of_breaths-1):
-        phases_values[0] += NPtimestamps[adc_data.breath_peak_indices[i]] - NPtimestamps[adc_data.inhale_point_indices[i]]
-        phases_values[1] += NPtimestamps[adc_data.exhale_point_indices[i]] - NPtimestamps[adc_data.breath_peak_indices[i]]
-        phases_values[2] += NPtimestamps[adc_data.breath_minimum_indices[i]] - NPtimestamps[adc_data.exhale_point_indices[i]]
-        phases_values[3] += NPtimestamps[adc_data.breath_end_point_indices[i]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
+        phases_values[0] += float(NPtimestamps[adc_data.breath_peak_indices[i]] - NPtimestamps[adc_data.inhale_point_indices[i]])
+        phases_values[1] += float(NPtimestamps[adc_data.exhale_point_indices[i]] - NPtimestamps[adc_data.breath_peak_indices[i]])
+        phases_values[2] += float(NPtimestamps[adc_data.breath_minimum_indices[i]] - NPtimestamps[adc_data.exhale_point_indices[i]])
+        phases_values[3] += float(NPtimestamps[adc_data.breath_end_point_indices[i]] - NPtimestamps[adc_data.breath_minimum_indices[i]])
         # until outliers are not dealt with
         """
         if i != number_of_breaths-1:

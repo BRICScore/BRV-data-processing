@@ -24,8 +24,8 @@ def time_outliers(adc_data, target_adc):
         breath_durations.append((minima_timestamps[i-1], duration))
 
     # Enumerate outlier breaths based on duration percentiles
-    lower_bound = np.percentile(breath_durations, PERCENTILE_THRESHOLD)
-    upper_bound = np.percentile(breath_durations, 100 - PERCENTILE_THRESHOLD)
+    lower_bound = np.percentile(breath_durations, LOWER_PERCENTILE_THRESHOLD)
+    upper_bound = np.percentile(breath_durations, UPPER_PERCENTILE_THRESHOLD)
 
     # timestamps and durations of breaths to be deleted
     outlier_breaths = []
@@ -82,8 +82,8 @@ def amplitude_outliers(adc_data, target_adc):
         adc_data.amplitude_outlier_adc_data = np.full_like(adc_data.adc_normalized_data[target_adc], np.nan)
         return
 
-    lower_bound = np.percentile(amplitudes, PERCENTILE_THRESHOLD)
-    upper_bound = np.percentile(amplitudes, 100 - PERCENTILE_THRESHOLD)
+    lower_bound = np.percentile(amplitudes, LOWER_PERCENTILE_THRESHOLD)
+    upper_bound = np.percentile(amplitudes, UPPER_PERCENTILE_THRESHOLD)
 
     # detect outlier breaths by amplitude
     outlier_breaths = []
@@ -157,7 +157,7 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
                 total_time_shift += time_shift
                 adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
                 nan_adjusted_timestamps.append(adjusted_timestamp)
-                print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
+                # print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
                 for j in range(ADC_COUNT):
                     nan_adjusted_data[j].append(oryginal_signal[j][i])
                 first_nan_timestamp = None
@@ -177,21 +177,22 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
         plt.legend()
         plt.show()
 
-    # resampling and smoothing the data while keeping the same timestamps
-    resampled_data = [[] for _ in range(ADC_COUNT)]
-    for i in range(ADC_COUNT):
-        resampled_data[i] = resample_data(nan_adjusted_data[i], RESAMPLE_NODE_COUNT)
-    resampled_timestamps = resample_data(nan_adjusted_timestamps, RESAMPLE_NODE_COUNT)
+    # # resampling and smoothing the data while keeping the same timestamps
+    # resampled_data = [[] for _ in range(ADC_COUNT)]
+    # for i in range(ADC_COUNT):
+    #     resampled_data[i] = resample_data(nan_adjusted_data[i], RESAMPLE_NODE_COUNT)
+    # resampled_timestamps = resample_data(nan_adjusted_timestamps, RESAMPLE_NODE_COUNT)
 
-    if adc_data.plot_enabled:
-        plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
-        plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
-        plt.title("Resampled Signal")
-        plt.legend()
-        plt.show()
+    # if adc_data.plot_enabled:
+    #     plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
+    #     plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
+    #     plt.title("Resampled Signal")
+    #     plt.legend()
+    #     plt.show()
 
-    adc_data.final_adc_data = resampled_data
-    adc_data.final_adc_timestamps = resampled_timestamps
+    adc_data.final_adc_data = nan_adjusted_data
+    adc_data.final_adc_timestamps = nan_adjusted_timestamps
+    print(len(adc_data.final_adc_timestamps))
 
 def outlier_detection(adc_data, target_adc):
     time_outliers(adc_data, target_adc)

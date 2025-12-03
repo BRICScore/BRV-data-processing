@@ -56,6 +56,13 @@ def handle_results_data(input_file, adc_data):
             }
             o_f.write(json.dumps(record) + "\n")
 
+def resample_data(y, new_len=100):
+    x_old = np.linspace(0, 1, len(y))
+    x_new =  np.linspace(0, 1, new_len)
+    # f = spi.CubicSpline(x_old, old_y)
+    f = spi.interp1d(x_old, y, kind='cubic')
+    return f(x_new)
+
 def split_data_into_segments(input_file, adc_data):
     segment_index = 0
     total_segments = int(np.ceil(adc_data.final_adc_timestamps[-1] / SEGMENT_LENGTH_MS))
@@ -68,16 +75,31 @@ def split_data_into_segments(input_file, adc_data):
         segment_start = segment_index * SEGMENT_LENGTH_MS
         segment_end = segment_start + SEGMENT_LENGTH_MS
         segment_fill_percentage = 0
-        with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split(".")[0]}.jsonl", 'w') as o_f:
-            for i in range(len(adc_data.final_adc_timestamps)):
-                if segment_start <= adc_data.final_adc_timestamps[i] < segment_end:
+        segment_data = []
+        segment_timestamps = []
+        for i in range(len(adc_data.final_adc_timestamps)):
+            if segment_start <= adc_data.final_adc_timestamps[i] < segment_end:
+                segment_timestamps.append(adc_data.final_adc_timestamps[i])
+                segment_data.append([adc_data.final_adc_data[a][i] for a in range(ADC_COUNT)])
+                segment_fill_percentage += 1
+        segment_fill_percentage = (segment_fill_percentage*100 / SEGMENT_LENGTH_MS) * 100
+
+        # resample segment to fixed number of nodes
+        if segment_fill_percentage > 80:
+            resampled_timestamps = resample_data(np.array(segment_timestamps), RESAMPLE_NODE_COUNT)
+            resampled_data = []
+            for a in range(ADC_COUNT):
+                adc_channel_data = [segment_data[i][a] for i in range(len(segment_data))]
+                resampled_channel_data = resample_data(np.array(adc_channel_data), RESAMPLE_NODE_COUNT)
+                resampled_data.append(resampled_channel_data)
+            with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split('.')[0]}.jsonl", 'w') as o_f:
+                for i in range(RESAMPLE_NODE_COUNT):
                     record = {
-                        "timestamp": int(adc_data.final_adc_timestamps[i]),
-                        "adc_outputs": [adc_data.final_adc_data[a][i] for a in range(ADC_COUNT)]
+                        "timestamp": int(resampled_timestamps[i]),
+                        "adc_voltages": [(resampled_data[a][i]) for a in range(ADC_COUNT)],
                     }
                     o_f.write(json.dumps(record) + "\n")
-                    segment_fill_percentage += 1
-        segment_fill_percentage = (segment_fill_percentage*100 / SEGMENT_LENGTH_MS) * 100
+
         print(f"Segment {segment_index}: {segment_fill_percentage:.2f}% filled")
 
 def process_file(parser):
@@ -98,4 +120,4 @@ def process_file(parser):
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
     split_data_into_segments(input_file, adc_data)
-    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    # basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
