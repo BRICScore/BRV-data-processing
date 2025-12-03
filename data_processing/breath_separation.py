@@ -15,16 +15,6 @@ def breath_separation(adc_data, target_adc):
     adc_data.signal_minima = local_minima
     adc_data.signal_maxima = local_maxima #step 6 - assigning those points to all signals (just save it in class)
 
-    adc_data.smoothed_signal = final_smoothing_with_splines(adc_data, smoothed_signal, target_adc)
-    """
-    plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
-    plt.plot(smoothed_signal, label='Smoothed')
-
-    plt.scatter(local_maxima, smoothed_signal[local_maxima], color='red', label='Maxima')
-    plt.scatter(local_minima, smoothed_signal[local_minima], color='blue', label='Minima')
-    plt.legend()
-    plt.show()
-    """
 
 #step 1 - finding local maxima
 def find_local_maxima(adc_data, target_adc=TARGET_ADC):
@@ -100,25 +90,3 @@ def intervals_to_minima(maxima, interval_values, target_adc=TARGET_ADC):
             else:
                 minima.append(turn_point-1)
     return minima
-
-# step 7 - final smoothing with fifth degree splines
-def final_smoothing_with_splines(adc_data, smoothed_signal, target_adc=TARGET_ADC):
-    final_signal = smoothed_signal.copy()
-    x = np.arange(0, len(smoothed_signal))
-    y = smoothed_signal.copy()
-    degree = 5 # spline degree
-    tck = splrep(x, y)
-    spline = BSpline(tck[0], tck[1], k=degree, extrapolate=False) #s is a smoothing factor to tweak
-    smoothed_segment = spline(x)
-    smoothed_segment[0] = smoothed_signal[0]
-    smoothed_segment[-1] = smoothed_signal[-1]
-
-    final_signal[0:len(smoothed_signal)] = smoothed_segment
-    if adc_data.plot_enabled:
-        plt.plot(adc_data.adc_normalized_data[target_adc], label='Original')
-        plt.plot(smoothed_signal, label='Smoothed')
-        plt.plot(final_signal, label='Even more smoooooth')
-        plt.legend()
-        plt.show()
-    
-    return final_signal

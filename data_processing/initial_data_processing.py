@@ -3,6 +3,7 @@ import json
 
 from breath_separation import *
 # from feature_extraction import *
+from feature_extraction import basic_feature_extraction
 from outlier_detection import *
 
 from ADC_data import ADCdata
@@ -57,7 +58,7 @@ def handle_results_data(input_file, adc_data):
 
 def split_data_into_segments(input_file, adc_data):
     segment_index = 0
-    total_segments = int(np.ceil(adc_data.timestamps[-1] / SEGMENT_LENGTH_MS))
+    total_segments = int(np.ceil(adc_data.final_adc_timestamps[-1] / SEGMENT_LENGTH_MS))
     filename = input_file.split("_")
     time = filename[1]
     person = filename[2]
@@ -68,11 +69,11 @@ def split_data_into_segments(input_file, adc_data):
         segment_end = segment_start + SEGMENT_LENGTH_MS
         segment_fill_percentage = 0
         with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split(".")[0]}.jsonl", 'w') as o_f:
-            for i in range(len(adc_data.timestamps)):
-                if segment_start <= adc_data.timestamps[i] < segment_end:
+            for i in range(len(adc_data.final_adc_timestamps)):
+                if segment_start <= adc_data.final_adc_timestamps[i] < segment_end:
                     record = {
-                        "timestamp": int(adc_data.timestamps[i]),
-                        "adc_outputs": [adc_data.adc_normalized_data[a][i] for a in range(ADC_COUNT)]
+                        "timestamp": int(adc_data.final_adc_timestamps[i]),
+                        "adc_outputs": [adc_data.final_adc_data[a][i] for a in range(ADC_COUNT)]
                     }
                     o_f.write(json.dumps(record) + "\n")
                     segment_fill_percentage += 1
@@ -97,4 +98,4 @@ def process_file(parser):
     breath_separation(adc_data=adc_data, target_adc=TARGET_ADC) # from breath_separation.py
     outlier_detection(adc_data=adc_data, target_adc=TARGET_ADC) # from outlier_detection.py
     split_data_into_segments(input_file, adc_data)
-    # basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
+    basic_feature_extraction(adc_data, input_file)              # from feature_extraction.py
