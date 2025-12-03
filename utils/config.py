@@ -4,8 +4,9 @@ MIN_24B = -2**23
 VOLTAGE_RANGE = 0.4  # -0.2V to 0.2V
 ADC_COUNT = 5
 TARGET_ADC = 3  # ADC to analyze for functions
-SEGMENT_LENGTH_MS = 120_000
 
+SEGMENT_LENGTH_MS = 120_000 # 2-minute segments
+ACCEPTABLE_DATA_LOSS = 0.2 # fraction threshold for the data to be analyzed
 
 TARGET_ADC = 3
 INDEX = 0

@@ -3,6 +3,7 @@ import numpy as np
 
 from config import *
 PERSON_ID = 3
+ACTIVITY_ID = 4
 
 def plot_data(input_file, adc_data, avg_breath_depth):
     plt.figure(figsize=(15, 10))
@@ -36,7 +37,7 @@ def count_breaths(adc_data):
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     breath_peaks = []
     breath_peak_indices = []
-    last_peak_was_x_ago = 0
+    last_peak_was_x_ago = 21
     min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
     for i in range(1,len(adc_data.adc_normalized_data[target_adc-1])-1):
@@ -48,6 +49,11 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
         last_peak_was_x_ago += 1
     adc_data.breath_peaks = breath_peaks
     adc_data.breath_peak_indices = breath_peak_indices
+    try:
+        breath_peaks[0]
+    except:
+        breath_peaks.append(min_value_for_peak) # in case peaks are empty give it minimum value
+        breath_peak_indices.append(0) # and index
     avg_breath_depth = np.mean(breath_peaks)
     avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc-1])
     return avg_breath_depth, avg_breath_depth_std_dev
@@ -269,7 +275,8 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
             if i != len(phases_avg_values)-1:
                 o_f.write(", ")
         o_f.write("], ")
-        o_f.write(f"\"person\": \"{input_file.split("_")[PERSON_ID]}\"")
+        temp_feature_name = input_file.split("_")
+        o_f.write(f"\"person\": \"{temp_feature_name[PERSON_ID]}_{temp_feature_name[ACTIVITY_ID]}\"")
         o_f.write("}\n")
     print(f"breath count for {input_file}: {adc_data.breath_count} for {adc_data.timestamps[-1] - adc_data.timestamps[0]}ms -> {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)} bpm")
     print(f"breath depth: {avg_breath_depth}")

@@ -4,7 +4,7 @@ import json
 sys.path.append("feature_processing")
 sys.path.append("utils")
 from feature_extraction import *
-from config import ADC_COUNT
+from config import ADC_COUNT, ACCEPTABLE_DATA_LOSS
 from ADC_data import ADCdata
 RESULTS_PATH = './results'
 
@@ -30,7 +30,9 @@ with os.scandir(RESULTS_PATH) as es:
             feature_vector = []
             with open(e.path, encoding='utf-8') as f:
                 file = f.read().split("\n")
-                if len(file) < (SEGMENT_LENGTH_MS / 100) * 0.8:
+                #print("len:",len(file))
+                #print("threshold:", (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS))
+                if len(file) < (SEGMENT_LENGTH_MS / 100) * (1.0 - ACCEPTABLE_DATA_LOSS):
                     continue
                 for f_line in file:
                     if f_line != '': # last newline produces empty string
