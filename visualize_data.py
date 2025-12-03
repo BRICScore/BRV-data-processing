@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import itertools
+import sys
 from sklearn.decomposition import PCA
+sys.path.append("feature_processing")
+from eigenvalues_extraction import *
 import json
 import random
 
@@ -26,6 +29,8 @@ def visualize_data():
     # feature_data.features = feature_loading(feature_data)
     feature_data.features = feature_loading(feature_data)
     PCA_algorithm(feature_data)
+    extract_eigenvalues(feature_data)
+
     plot_pca_data(feature_data)
 
 def parse_features_line(line, feature_data):
@@ -74,10 +79,25 @@ def standarize_data(feature_data):
         std = np.std(feature_data.features[:, i]) # change the variance if 0 not to divide by it
         feature_data.features[:, i] = (feature_data.features[:, i] - np.mean(feature_data.features[:, i])) / ( 1 if std == 0 else std)
 
+def calculate_covariance_matrix(feature_data):
+    no_of_data_points = len(feature_data.features)
+    A = np.zeros(shape=(feature_data.feature_count, feature_data.feature_count))
+    for x1 in range(feature_data.feature_count):
+        x1_mean = np.mean(feature_data.features[:,x1])
+        for x2 in range(feature_data.feature_count):
+            x2_mean = np.mean(feature_data.features[:,x2])
+            for i in range(no_of_data_points):
+                A[x1][x2] += (feature_data.features[i][x1]*x1_mean) * (feature_data.features[i][x2]*x2_mean)
+    A /= no_of_data_points-1
+    return A
+
 def PCA_algorithm(feature_data):
     standarize_data(feature_data)
     pca = PCA(n_components=NO_OF_FEATURES_AFTER_ALG)
     feature_data.features_pca = pca.fit_transform(feature_data.features)
+    print("Graph directions:",pca.components_)
+    for feature_direction in pca.components_:
+        print("Feature importance in each direction:", np.argsort(np.abs(feature_direction))[::-1])
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
