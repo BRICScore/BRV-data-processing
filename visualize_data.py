@@ -3,12 +3,15 @@ import numpy as np
 import itertools
 import sys
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.manifold import MDS
+
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
 import json
 import random
 
-NO_OF_FEATURES_AFTER_ALG = 2
+NO_OF_FEATURES_AFTER_ALG = 3
 FEATURES_PATH = './features'
 
 class FeatureData():
@@ -20,18 +23,37 @@ class FeatureData():
         self.features_pca = None
 
         self.feature_index = 0
+        self.feature_keys = {}
         self.person_colors = {} # dictionary for colors of data points for different person labels
         self.person_indices = {} # dictionary holding arrays of indices in feature data for people
         self.person_initials = [] # array holding all initials for labels in legend
 
 def visualize_data():
     feature_data = FeatureData()
-    # feature_data.features = feature_loading(feature_data)
-    feature_data.features = feature_loading(feature_data)
-    PCA_algorithm(feature_data)
-    extract_eigenvalues(feature_data)
+    create_indices_for_features(feature_data)
 
+    feature_data.features = feature_loading(feature_data)
+    # extract_eigenvalues(feature_data)
+    MDS_algorithm(feature_data)
+    PCA_algorithm(feature_data)
     plot_pca_data(feature_data)
+
+def create_indices_for_features(feature_data):
+    record = None
+    with open("./features/extracted_features.jsonl", "r") as file:
+        record = file.readline()
+    i = 0
+    json_line = json.loads(record)
+    for key in json_line:
+        if isinstance(json_line[key], list):
+            index = 1
+            for val in json_line[key]:
+                feature_data.feature_keys[i] = key + str(index)
+                index += 1
+                i += 1
+        else:
+            feature_data.feature_keys[i] = key
+            i += 1
 
 def parse_features_line(line, feature_data):
     feature_vector = []
@@ -67,10 +89,8 @@ def feature_loading(feature_data):
             feature_vector = parse_features_line(json.loads(record), feature_data)
             features.append(feature_vector)
             record = file.readline()
-    # print(feature_data.person_initials)
-    # print(feature_data.person_indices)
-    # print(feature_data.person_colors)
-    # print(features)
+    feature_data.feature_count = len(features[0])
+    feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"} ###########TODO############
     return np.array(features)
 
 def standarize_data(feature_data):
@@ -91,13 +111,52 @@ def calculate_covariance_matrix(feature_data):
     A /= no_of_data_points-1
     return A
 
+def MDS_algorithm(feature_data):
+    X = feature_data.features
+    X_scaled = StandardScaler().fit_transform(X)
+
+    mds = MDS(
+        n_components=NO_OF_FEATURES_AFTER_ALG,
+        random_state=42,
+        n_init=4
+    )
+
+    feature_data.features_mds = mds.fit_transform(X_scaled)
+    print("MDS result")
+    plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
+    for person in feature_data.person_initials:
+        records = feature_data.features_mds[feature_data.person_indices[person]]
+        plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
+    plt.legend(feature_data.person_initials)
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.show()
+    print()
+
 def PCA_algorithm(feature_data):
-    standarize_data(feature_data)
+    # standarize_data(feature_data)
+    X = feature_data.features
+    X_centered = X - np.mean(X, axis=0)
+    cov = np.cov(X_centered, rowvar=False)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    eigvals = eigvals[::-1]
+    print(eigvals)
+    scaled_features = StandardScaler().fit_transform(feature_data.features)
     pca = PCA(n_components=NO_OF_FEATURES_AFTER_ALG)
-    feature_data.features_pca = pca.fit_transform(feature_data.features)
-    print("Graph directions:",pca.components_)
+    feature_data.features_pca = pca.fit_transform(scaled_features)
+    i = 1
     for feature_direction in pca.components_:
-        print("Feature importance in each direction:", np.argsort(np.abs(feature_direction))[::-1])
+        print(f"Feature {i} direction values:", feature_direction)
+        sorted_indices = np.argsort(np.abs(feature_direction))[::-1]
+        # print(feature_data.feature_keys)
+        print(f"Feature {i} importance in each direction:", [feature_data.feature_keys[k] for k in sorted_indices])
+        i += 1
+        print()
+    
+    eigenvalues = pca.explained_variance_
+    print("Eigenvalues:", eigenvalues)
+    sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
+    print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
