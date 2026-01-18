@@ -99,7 +99,6 @@ def SVM_validation(feature_data):
 
         plt.show()
 
-
 def create_indices_for_features(feature_data):
     record = None
     with open("./features/extracted_features.jsonl", "r") as file:
@@ -218,7 +217,7 @@ def PCA_algorithm(feature_data):
     eigenvalues = pca.explained_variance_
     print("Eigenvalues:", eigenvalues)
     sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
-    print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
+    # print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
