@@ -2,16 +2,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import itertools
 import sys
+import math
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import MDS
+from sklearn.inspection import DecisionBoundaryDisplay
+from sklearn.svm import SVC
 
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
 import json
 import random
 
-NO_OF_FEATURES_AFTER_ALG = 3
+NO_OF_FEATURES_AFTER_ALG = 2
 FEATURES_PATH = './features'
 
 class FeatureData():
@@ -37,6 +40,64 @@ def visualize_data():
     MDS_algorithm(feature_data)
     PCA_algorithm(feature_data)
     plot_pca_data(feature_data)
+
+    # accuracy measuring part
+    # SVM
+    if NO_OF_FEATURES_AFTER_ALG == 2:
+        SVM_validation(feature_data=feature_data)
+    # LSTM
+
+def SVM_validation(feature_data):
+    # print(feature_data.features_pca)
+    for pair in list(itertools.combinations(feature_data.person_initials, 2)):
+        person1, person2 = pair
+        records1 = feature_data.features_pca[feature_data.person_indices[person1]]
+        labels1 = [person1 for record in records1]
+        records2 = feature_data.features_pca[feature_data.person_indices[person2]]
+        labels2 = [person2 for record in records2]
+        # columns are the 2 reduced features
+        X = np.concatenate((records1, records2), axis=0)
+        y = np.concatenate((labels1, labels2), axis=0)
+
+        svm = SVC(kernel="linear", C=1)
+        svm.fit(X,y)
+
+        DecisionBoundaryDisplay.from_estimator(
+            svm,
+            X,
+            response_method="predict",
+            alpha=0.8,
+            cmap="Pastel1",
+            xlabel="x",
+            ylabel="y"
+        )
+
+        W=svm.coef_[0]
+        I=svm.intercept_
+        a = -W[0]/W[1]
+        b = I[0]/W[1]
+
+        line_x = np.linspace(np.min(X[:,0])-1, np.max(X[:,0])+1, num=10)
+        line_y = [a*x - b for x in line_x]
+        plt.plot(line_x, line_y, "--", c="k")
+        plt.xlim(np.min(X[:,0])-0.5, np.max(X[:,0])+0.5)
+        plt.ylim(np.min(X[:,1])-0.5, np.max(X[:,1])+0.5)
+
+        y_pred = svm.predict(X)
+        length_y = len(y_pred)
+        counter = 0
+        for i in range(length_y):
+            if y[i] == y_pred[i]:
+                counter += 1
+        
+        print(f"Accuracy for {person1} and {person2}: {(counter/length_y)*100}%")
+
+        plt.title(f"{person1} and {person2} divided by linear SVM")
+        plt.scatter(records1[:, 0], records1[:, 1], c="red")
+        plt.scatter(records2[:, 0], records2[:, 1], c="blue")
+        plt.legend(["Dividing line", person1, person2])
+
+        plt.show()
 
 def create_indices_for_features(feature_data):
     record = None
@@ -156,7 +217,7 @@ def PCA_algorithm(feature_data):
     eigenvalues = pca.explained_variance_
     print("Eigenvalues:", eigenvalues)
     sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
-    print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
+    # print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
