@@ -9,8 +9,10 @@ from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 
+
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
+from profile_extraction import extract_data_profiles
 import json
 import random
 
@@ -46,6 +48,7 @@ def visualize_data():
     if NO_OF_FEATURES_AFTER_ALG == 2:
         SVM_validation(feature_data=feature_data)
     # LSTM
+    extract_data_profiles(feature_data)
 
 def SVM_validation(feature_data):
     # print(feature_data.features_pca)
