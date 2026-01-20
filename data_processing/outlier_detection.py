@@ -178,11 +178,12 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
         plt.show()
 
     # resampling and smoothing the data while keeping the same timestamps
+    signal_duration = nan_adjusted_timestamps[-1] - nan_adjusted_timestamps[0]
+    resampled_node_count = int(signal_duration // 100)
     resampled_data = [[] for _ in range(ADC_COUNT)]
     for i in range(ADC_COUNT):
-        resampled_data[i] = resample_data(nan_adjusted_data[i], RESAMPLE_NODE_COUNT)
-    resampled_timestamps = resample_data(nan_adjusted_timestamps, RESAMPLE_NODE_COUNT)
-
+        resampled_data[i] = resample_data(nan_adjusted_data[i], resampled_node_count)
+    resampled_timestamps = resample_data(nan_adjusted_timestamps, resampled_node_count)
     if adc_data.plot_enabled:
         plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
         plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
