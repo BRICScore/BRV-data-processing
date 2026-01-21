@@ -5,7 +5,7 @@ sys.path.append("feature_processing")
 sys.path.append("utils")
 from feature_extraction import *
 from config import ADC_COUNT, ACCEPTABLE_DATA_LOSS
-from ADC_data import ADCdata
+from data_containers.ADC_data import ADCdata
 RESULTS_PATH = './results'
 
 

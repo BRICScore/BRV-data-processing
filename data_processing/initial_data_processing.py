@@ -6,7 +6,7 @@ from breath_separation import *
 from feature_extraction import basic_feature_extraction
 from outlier_detection import *
 
-from ADC_data import ADCdata
+from data_containers.ADC_data import ADCdata
 from config import *
 
 def u2_to_i(value, b1, b2, b3):
