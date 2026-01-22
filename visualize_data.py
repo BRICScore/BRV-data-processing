@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
+import seaborn as sns
 
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
@@ -45,7 +46,22 @@ def visualize_data():
     # SVM
     if NO_OF_FEATURES_AFTER_ALG == 2:
         SVM_validation(feature_data=feature_data)
-    # LSTM
+    # heatmap
+    plot_heatmap(feature_data=feature_data)
+
+def plot_heatmap(feature_data):
+    scaled_features = StandardScaler().fit_transform(feature_data.features)
+    print("test", scaled_features.shape)
+    i = 1
+    for person in feature_data.person_initials:
+        print(person, feature_data.person_indices[person])
+        records = scaled_features[feature_data.person_indices[person]]
+        labels = [feature_data.feature_keys[i] for i in range(feature_data.feature_count)]
+        plt.subplot(len(feature_data.person_initials),1,i)
+        plt.title(person)
+        sns.heatmap(records[0:10], xticklabels=labels, vmin=-2.0, vmax=4.0)
+        i+=1
+    plt.show()
 
 def SVM_validation(feature_data):
     # print(feature_data.features_pca)
