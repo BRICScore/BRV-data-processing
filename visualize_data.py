@@ -4,7 +4,7 @@ import itertools
 import sys
 import math
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
@@ -50,7 +50,7 @@ def visualize_data():
     plot_heatmap(feature_data=feature_data)
 
 def plot_heatmap(feature_data):
-    scaled_features = StandardScaler().fit_transform(feature_data.features)
+    scaled_features = MinMaxScaler().fit_transform(feature_data.features)
     print("test", scaled_features.shape)
     i = 1
     for person in feature_data.person_initials:
@@ -59,7 +59,7 @@ def plot_heatmap(feature_data):
         labels = [feature_data.feature_keys[i] for i in range(feature_data.feature_count)]
         plt.subplot(len(feature_data.person_initials),1,i)
         plt.title(person)
-        sns.heatmap(records[0:10], xticklabels=labels, vmin=-2.0, vmax=4.0)
+        sns.heatmap(records[0:10], xticklabels=labels, vmin=0.0, vmax=1.0)
         i+=1
     plt.show()
 
