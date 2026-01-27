@@ -150,7 +150,8 @@ def feature_loading(feature_data):
     with open("./features/extracted_features.jsonl", "r") as file:
         record = file.readline()
         while record:
-            feature_vector = parse_features_line(json.loads(record), feature_data)
+            json_record = json.loads(record)
+            feature_vector = parse_features_line(json_record, feature_data)
             features.append(feature_vector)
             record = file.readline()
     feature_data.feature_count = len(features[0])
