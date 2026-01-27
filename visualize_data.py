@@ -106,7 +106,7 @@ def SVM_validation(feature_data):
             if y[i] == y_pred[i]:
                 counter += 1
         
-        print(f"Accuracy for {person1} and {person2}: {(counter/length_y)*100}%")
+        print(f"Accuracy for {person1} and {person2}: {(counter/length_y)*100:.2f}%")
 
         plt.title(f"{person1} and {person2} divided by linear SVM")
         plt.scatter(records1[:, 0], records1[:, 1], c="red")
