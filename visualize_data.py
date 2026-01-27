@@ -4,10 +4,11 @@ import itertools
 import sys
 import math
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
+import seaborn as sns
 
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
@@ -45,7 +46,22 @@ def visualize_data():
     # SVM
     if NO_OF_FEATURES_AFTER_ALG == 2:
         SVM_validation(feature_data=feature_data)
-    # LSTM
+    # heatmap
+    plot_heatmap(feature_data=feature_data)
+
+def plot_heatmap(feature_data):
+    scaled_features = MinMaxScaler().fit_transform(feature_data.features)
+    print("test", scaled_features.shape)
+    i = 1
+    for person in feature_data.person_initials:
+        print(person, feature_data.person_indices[person])
+        records = scaled_features[feature_data.person_indices[person]]
+        labels = [feature_data.feature_keys[i] for i in range(feature_data.feature_count)]
+        plt.subplot(len(feature_data.person_initials),1,i)
+        plt.title(person)
+        sns.heatmap(records[0:10], xticklabels=labels, vmin=0.0, vmax=1.0)
+        i+=1
+    plt.show()
 
 def SVM_validation(feature_data):
     # print(feature_data.features_pca)
@@ -90,7 +106,7 @@ def SVM_validation(feature_data):
             if y[i] == y_pred[i]:
                 counter += 1
         
-        print(f"Accuracy for {person1} and {person2}: {(counter/length_y)*100}%")
+        print(f"Accuracy for {person1} and {person2}: {(counter/length_y)*100:.2f}%")
 
         plt.title(f"{person1} and {person2} divided by linear SVM")
         plt.scatter(records1[:, 0], records1[:, 1], c="red")
