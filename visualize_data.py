@@ -15,7 +15,7 @@ from eigenvalues_extraction import *
 import json
 import random
 
-NO_OF_FEATURES_AFTER_ALG = 2
+NO_OF_FEATURES_AFTER_ALG = 17
 FEATURES_PATH = './features'
 
 class FeatureData():
@@ -45,9 +45,9 @@ def visualize_data():
     # accuracy measuring part
     # SVM
     if NO_OF_FEATURES_AFTER_ALG == 2:
-        SVM_validation(feature_data=feature_data)
+        pass #SVM_validation(feature_data=feature_data)
     # heatmap
-    plot_heatmap(feature_data=feature_data)
+    #plot_heatmap(feature_data=feature_data)
 
 def plot_heatmap(feature_data):
     scaled_features = MinMaxScaler().fit_transform(feature_data.features)
@@ -199,65 +199,89 @@ def MDS_algorithm(feature_data):
     )
 
     feature_data.features_mds = mds.fit_transform(X_scaled)
-    print("MDS result")
-    plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
-    for person in feature_data.person_initials:
-        records = feature_data.features_mds[feature_data.person_indices[person]]
-        plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
-    plt.legend(feature_data.person_initials)
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
-    plt.show()
-    print()
+    # print("MDS result")
+    # plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
+    # for person in feature_data.person_initials:
+    #     records = feature_data.features_mds[feature_data.person_indices[person]]
+    #     plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
+    # plt.legend(feature_data.person_initials)
+    # plt.xlabel('Feature 1')
+    # plt.ylabel('Feature 2')
+    # plt.show()
+    # print()
 
 def PCA_algorithm(feature_data):
     # standarize_data(feature_data)
     X = feature_data.features
-    X_centered = X - np.mean(X, axis=0)
+    X_centered = (X - X.mean(axis=0))
     cov = np.cov(X_centered, rowvar=False)
     eigvals, eigvecs = np.linalg.eigh(cov)
-    eigvals = eigvals[::-1]
-    print(eigvals)
+    
+    idx = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]
+
+    # for i in range(len(eigvecs)):
+    #     print(f"eigenvalue: {eigvals[i]}, eigenvector: {eigvecs[i]}")
+    
+    feature_importance = np.sum(np.abs(eigvecs) * eigvals, axis=1)
+    sorted_indices = np.argsort(feature_importance)[::-1]
+    print(feature_importance)
+    print([feature_data.feature_keys[k] for k in sorted_indices])
+
     scaled_features = StandardScaler().fit_transform(feature_data.features)
     pca = PCA(n_components=NO_OF_FEATURES_AFTER_ALG)
     feature_data.features_pca = pca.fit_transform(scaled_features)
+    top_5_features = []
     i = 1
     for feature_direction in pca.components_:
-        print(f"Feature {i} direction values:", feature_direction)
         sorted_indices = np.argsort(np.abs(feature_direction))[::-1]
+        print(f"Feature {i} direction values:", feature_direction[sorted_indices])
         # print(feature_data.feature_keys)
         print(f"Feature {i} importance in each direction:", [feature_data.feature_keys[k] for k in sorted_indices])
         i += 1
+        for n in range(len(feature_direction)):
+            val = np.abs(feature_direction[n])
+            idx = 0
+            for x in range(len(top_5_features)):
+                if top_5_features[x][1] > val:
+                    idx += 1
+                else:
+                    break
+            if idx < 5:
+                top_5_features.insert(idx, (feature_data.feature_keys[sorted_indices[n]], feature_direction[n]))
+                top_5_features = top_5_features[:5]
         print()
     
     eigenvalues = pca.explained_variance_
     print("Eigenvalues:", eigenvalues)
     sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
-    # print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
+
+    print(top_5_features)
 
 def plot_pca_data(feature_data):
-    if NO_OF_FEATURES_AFTER_ALG == 2:
-        plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
-        for person in feature_data.person_initials:
-            records = feature_data.features_pca[feature_data.person_indices[person]]
-            plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
-        plt.legend(feature_data.person_initials)
-        plt.xlabel('Feature 1')
-        plt.ylabel('Feature 2')
-        plt.show()
-    if NO_OF_FEATURES_AFTER_ALG >= 3:
-        feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"}
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
-        for person in feature_data.person_initials:
-            records = feature_data.features_pca[feature_data.person_indices[person]]
-            ax.scatter(records[:,0], records[:,1], records[:,2], c=feature_data.person_colors[person])
-        ax.legend(feature_data.person_initials)
-        ax.set_xlabel('Feature 1')
-        ax.set_ylabel('Feature 2')
-        ax.set_zlabel('Feature 3')
-        plt.show()
+    # if NO_OF_FEATURES_AFTER_ALG == 2:
+    #     plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+    #     for person in feature_data.person_initials:
+    #         records = feature_data.features_pca[feature_data.person_indices[person]]
+    #         plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
+    #     plt.legend(feature_data.person_initials)
+    #     plt.xlabel('Feature 1')
+    #     plt.ylabel('Feature 2')
+    #     plt.show()
+    # if NO_OF_FEATURES_AFTER_ALG >= 3:
+    #     feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"}
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(projection='3d')
+    #     ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+    #     for person in feature_data.person_initials:
+    #         records = feature_data.features_pca[feature_data.person_indices[person]]
+    #         ax.scatter(records[:,0], records[:,1], records[:,2], c=feature_data.person_colors[person])
+    #     ax.legend(feature_data.person_initials)
+    #     ax.set_xlabel('Feature 1')
+    #     ax.set_ylabel('Feature 2')
+    #     ax.set_zlabel('Feature 3')
+    #     plt.show()
         """
         feature_numbers = []
         for i in range(NO_OF_FEATURES_AFTER_ALG):
