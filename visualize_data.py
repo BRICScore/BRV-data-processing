@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import sys
 import math
+from typing import Optional
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.manifold import MDS
@@ -24,9 +25,9 @@ class FeatureData():
     def __init__(self):
         self.feature_files = []
         self.feature_colors = []
-        self.features = None
+        self.features: Optional[np.ndarray] = None
         self.feature_count = None
-        self.features_pca = None
+        self.features_pca: Optional[np.ndarray] = None
 
         self.feature_index = 0
         self.feature_keys = {}
@@ -259,7 +260,7 @@ def plot_pca_data(feature_data):
         ax.legend(feature_data.person_initials)
         ax.set_xlabel('Feature 1')
         ax.set_ylabel('Feature 2')
-        ax.set_zlabel('Feature 3')
+        # ax.set_zlabel('Feature 3')
         plt.show()
         """
         feature_numbers = []
