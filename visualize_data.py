@@ -10,8 +10,10 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 import seaborn as sns
 
+
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
+from profile_extraction import extract_data_profiles
 import json
 import random
 
@@ -46,6 +48,7 @@ def visualize_data():
     # SVM
     if NO_OF_FEATURES_AFTER_ALG == 2:
         SVM_validation(feature_data=feature_data)
+
     # heatmap
     plot_heatmap(feature_data=feature_data)
 

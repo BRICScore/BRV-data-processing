@@ -11,6 +11,4 @@ ACCEPTABLE_DATA_LOSS = 0.2 # fraction threshold for the data to be analyzed
 TARGET_ADC = 3
 INDEX = 0
 
-PERCENTILE_THRESHOLD = 15  # % for both lower and upper bounds
-
-RESAMPLE_NODE_COUNT = 2000
+PERCENTILE_THRESHOLD = 0.00015  # % for both lower and upper bounds
