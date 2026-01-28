@@ -3,6 +3,7 @@ import json
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import patches
 import pathlib
 import scipy
 
@@ -305,8 +306,113 @@ def create_data_profiles():
     visualize_profiles(profiles)
     visualize_mode_breaths(profiles)
 
+from visualize_data import FeatureData, create_indices_for_features, feature_loading
+import math
+
+def plot_profiles(profiles):
+    length = len(profiles)
+    fig, ax = plt.subplots(length, 1)  
+    i = 0
+    no_of_points = 10
+    alpha = 0.3
+    total_length = 0
+    biggest_height = 0
+    for key, values in profiles.items():
+        biggest_height = max(biggest_height, values["breath_depth_mode"])
+        total_length = max(total_length, (values["inhale_length_mode"]+values["ip_length_mode"]+values["exhale_length_mode"]+values["ep_length_mode"])/1000)
+    for key, values in profiles.items():
+        bps = 1/(values["bpm_mode"]/60)
+        inhale_x = np.linspace(0, values["inhale_length_mode"]/1000, no_of_points)
+        inhale_y = [values["breath_depth_mode"] * math.sin(math.pi * 2 * inhale_x[x] / (4*values["inhale_length_mode"]/1000)) for x in range(no_of_points)]
+        ax[i].plot(inhale_x, inhale_y)
+        ax[i].add_patch(patches.Rectangle(
+        (0.0, 0.0),   # (x,y)
+        values["inhale_length_mode"]/1000,          # width
+        values["breath_depth_mode"],          # height
+        color = "blue",
+        alpha = alpha)) #transparency
+
+        ip_start = values["inhale_length_mode"]/1000
+        ip_x = np.linspace(ip_start, ip_start+values["ip_length_mode"]/1000, no_of_points)
+        ip_y = [inhale_y[-1] for _ in ip_x]
+        ax[i].plot(ip_x, ip_y)
+        ax[i].add_patch(patches.Rectangle(
+        (ip_x[0], 0.0),   # (x,y)
+        values["ip_length_mode"]/1000,          # width
+        values["breath_depth_mode"],          # height
+        color = "orange",
+        alpha = alpha)) #transparency
+
+        exhale_start = ip_start+values["ip_length_mode"]/1000
+        exhale_x = np.linspace(0, values["exhale_length_mode"]/1000, no_of_points)
+        exhale_y = [values["breath_depth_mode"] * math.cos(math.pi * 2 * exhale_x[x] / (4*values["exhale_length_mode"]/1000)) for x in range(no_of_points)]
+        exhale_x += exhale_start
+        ax[i].add_patch(patches.Rectangle(
+        (exhale_x[0], 0.0),   # (x,y)
+        values["exhale_length_mode"]/1000,          # width
+        values["breath_depth_mode"],          # height
+        color = "red",
+        alpha = alpha)) #transparency
+
+        ep_start = exhale_x[-1]
+        ep_x = np.linspace(ep_start, ep_start+values["ep_length_mode"]/1000, no_of_points)
+        ep_y = [exhale_y[-1] for _ in ep_x]
+        ax[i].plot(ep_x, ep_y)
+        ax[i].add_patch(patches.Rectangle(
+        (ep_x[0], 0.0),   # (x,y)
+        values["ep_length_mode"]/1000,          # width
+        values["breath_depth_mode"],          # height
+        color = "green",
+        alpha = alpha)) #transparency
+
+        ax[i].plot(exhale_x, exhale_y)
+        ax[i].set_xlabel("time [s]")
+        ax[i].set_xlim(xmin=0.0, xmax=total_length)
+        ax[i].set_ylabel("breath_depth")
+        ax[i].set_ylim(ymin=0.0, ymax=biggest_height)
+        ax[i].set_title(key)
+        i += 1
+    fig.tight_layout(pad=0.5)
+    plt.show()
+
+
+def create_profile_from_features():
+    feature_data = FeatureData()
+    create_indices_for_features(feature_data)
+
+    feature_data.features = feature_loading(feature_data)
+    # print(feature_data.person_indices)
+    people_profiles = {}
+    for person in feature_data.person_initials:
+        records = feature_data.features[feature_data.person_indices[person]]
+        # print(records[0])
+        dicts = []
+        for i in range(len(feature_data.person_indices[person])):
+            dicts.append({
+                "bpm": records[i][0],
+                "breath_depth": records[i][1],
+                "inhale_length": records[i][13],
+                "ip_length": records[i][14],
+                "exhale_length": records[i][15],
+                "ep_length": records[i][16]
+            })
+        
+        people_profiles[person] = {
+            "bpm_mode": get_mode_param(dicts, "bpm"),
+            "breath_depth_mode": get_mode_param(dicts, "breath_depth"),
+            "inhale_length_mode": get_mode_param(dicts, "inhale_length"),
+            "ip_length_mode": get_mode_param(dicts, "ip_length"),
+            "exhale_length_mode": get_mode_param(dicts, "exhale_length"),
+            "ep_length_mode": get_mode_param(dicts, "ep_length")
+        }
+    
+    plot_profiles(profiles=people_profiles)
+        
+
 def main():
     create_data_profiles()
+    create_profile_from_features()
+
 
 if __name__ == "__main__":
     main()
