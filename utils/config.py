@@ -1,3 +1,10 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy
+import scipy.interpolate as spi
+import copy
+import json
+
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
 MIN_24B = -2**23
@@ -11,4 +18,7 @@ ACCEPTABLE_DATA_LOSS = 0.2 # fraction threshold for the data to be analyzed
 TARGET_ADC = 3
 INDEX = 0
 
-PERCENTILE_THRESHOLD = 1  # % for both lower and upper bounds
+PERCENTILE_THRESHOLD = 10  # % for both lower and upper bounds
+
+STD_DEV_CONST = 0.1 # when finding local maxima in breath separation we calculate mean + std_dev * STD_DEV_CONST as a threshold for peaks
+MIN_DISTANCE = 30 # minimum distance between peaks in breath separation
