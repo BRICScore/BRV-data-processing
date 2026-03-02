@@ -1,6 +1,8 @@
 from config import *
 
 def calculate_breaths(adc_data, target_adc):
+    """ TODO: Implement docstring
+    """
     local_minima = adc_data.signal_minima
     breaths = []
     for i in range(len(local_minima) - 1):
@@ -25,13 +27,45 @@ def calculate_breaths(adc_data, target_adc):
     return breaths
 
 def resample_data(y, new_len=100):
+    """ TODO: Implement docstring
+    """
     x_old = np.linspace(0, 1, len(y))
     x_new =  np.linspace(0, 1, new_len)
     # f = spi.CubicSpline(x_old, old_y)
     f = spi.interp1d(x_old, y, kind='cubic')
     return f(x_new)
 
+def resample_adc_data_and_timestamps(data, timestamps, adc_data):
+    # resampling and smoothing the data while keeping the same timestamps
+    # almost for sure nan_adjusted_timestamps[0] will be 0.0 but I dont have he brainpower to check it right now
+    # TODO: check if nan_adjusted_timestamps[0] is always 0.0
+    """ TODO: Implement docstring
+    """
+    signal_duration = timestamps[-1] - timestamps[0]
+    resampled_node_count = int(signal_duration // 100)
+    resampled_data = [[] for _ in range(ADC_COUNT)]
+    resampled_timestamps = resample_data(timestamps, resampled_node_count)
+    for i in range(ADC_COUNT):
+        resampled_data[i] = resample_data(data[i], resampled_node_count)
+
+    if adc_data.plot_enabled:
+        plt.plot(timestamps, data[adc_data.target_adc], label='Cleaned Signal', color='blue')
+        plt.plot(resampled_timestamps, resampled_data[adc_data.target_adc], label='Resampled Signal', color='orange')
+        plt.title("Resampled Signal")
+        plt.legend()
+        plt.show()
+    
+    return resampled_data, resampled_timestamps
+
 def time_outliers(adc_data, target_adc, breaths):
+    """ TODO: Implement docstring
+        Use numpydoc style for docstring?
+        1. What it does
+        2. Arguments
+        3. Returns
+        4. Side effects
+        5. Some notes?
+    """
     breath_durations = [(breath["start_timestamp"], breath["duration"]) for breath in breaths]
     lower_bound = np.percentile([d[1] for d in breath_durations], PERCENTILE_THRESHOLD)
     upper_bound = np.percentile([d[1] for d in breath_durations], 100 - PERCENTILE_THRESHOLD)
@@ -53,9 +87,6 @@ def time_outliers(adc_data, target_adc, breaths):
         time_outlier_signal[start_index:end_index] = original_signal[start_index:end_index]
         non_outlier_signal[start_index:end_index] = np.nan
 
-    adc_data.non_time_outlier_adc_data = non_outlier_signal
-    adc_data.time_outlier_adc_data = time_outlier_signal
-
     if adc_data.plot_enabled:
         plt.title("Time outliers")
         plt.plot(adc_data.timestamps, original_signal, label='Original Signal', color='gray')
@@ -64,7 +95,11 @@ def time_outliers(adc_data, target_adc, breaths):
         plt.legend()
         plt.show()
 
+    return non_outlier_signal
+
 def amplitude_outliers(adc_data, target_adc, breaths):
+    """ TODO: Implement docstring
+    """
     amplitudes = [breath["amplitude"] for breath in breaths]
     lower_bound = np.percentile(amplitudes, PERCENTILE_THRESHOLD)
     upper_bound = np.percentile(amplitudes, 100 - PERCENTILE_THRESHOLD)
@@ -84,9 +119,6 @@ def amplitude_outliers(adc_data, target_adc, breaths):
 
         amplitude_outlier_signal[start_index:end_index] = original_signal[start_index:end_index]
         non_outlier_signal[start_index:end_index] = np.nan
-        
-    adc_data.non_amplitude_outlier_adc_data = non_outlier_signal
-    adc_data.amplitude_outlier_adc_data = amplitude_outlier_signal
 
     if adc_data.plot_enabled:
         plt.title("Amplitude outliers")
@@ -96,10 +128,12 @@ def amplitude_outliers(adc_data, target_adc, breaths):
         plt.legend()
         plt.show()
 
-def remove_outliers_and_remake_signal(adc_data, target_adc):
+    return non_outlier_signal
+
+def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_signal, non_amplitude_outlier_signal):
+    """ TODO: Implement docstring
+    """
     original_signal = copy.deepcopy(adc_data.adc_normalized_data)
-    non_time_outlier_signal = adc_data.non_time_outlier_adc_data
-    non_amplitude_outlier_signal = adc_data.non_amplitude_outlier_adc_data
 
     for i in range(len(original_signal[target_adc])):
         if np.isnan(non_time_outlier_signal[i]) or np.isnan(non_amplitude_outlier_signal[i]):
@@ -113,20 +147,20 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
         plt.legend()
         plt.show()
 
-
-    clen_adc_normalized_data = ([], [], [], [], [], [])
+    clean_adc_normalized_timestamps = []
+    clean_adc_normalized_data = [[] for _ in range(ADC_COUNT)]
     for i in range(len(original_signal[target_adc])):
         if not np.isnan(original_signal[target_adc][i]):
-            clen_adc_normalized_data[0].append(adc_data.timestamps[i])
+            clean_adc_normalized_timestamps.append(adc_data.timestamps[i])
             for j in range(ADC_COUNT):
-                clen_adc_normalized_data[j+1].append(original_signal[j][i])
+                clean_adc_normalized_data[j].append(original_signal[j][i])
 
-    # resampling the signal BUT
-    # we go like this:
-    # for each NaN filled hole we calculate it's length and subtract it from timestamps of all nodes after it
-    # only after we get this NaN free signal we resample it to RESAMPLE_NODE_COUNT nodes
+    # for each NaN filled hole we calculate it's length and add it to the total time shift
+    # then when we want to write any non-NaN data to the nan_adjusted_data and nan_adjusted_timestamps
+    # we subtract the total time shift from the original timestamp to get the new timestamp
+    # then after we get this NaN free signal we resample it to RESAMPLE_NODE_COUNT nodes
     nan_adjusted_timestamps = []
-    nan_adjusted_data = [], [], [], [], []
+    nan_adjusted_data = [[] for _ in range(ADC_COUNT)]
     total_time_shift = 0
     first_nan_timestamp = None
     for i in range(len(adc_data.timestamps)):
@@ -136,7 +170,7 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
                 total_time_shift += time_shift
                 adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
                 nan_adjusted_timestamps.append(adjusted_timestamp)
-                print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
+                # print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
                 for j in range(ADC_COUNT):
                     nan_adjusted_data[j].append(original_signal[j][i])
                 first_nan_timestamp = None
@@ -155,26 +189,16 @@ def remove_outliers_and_remake_signal(adc_data, target_adc):
         plt.title("NaN adjusted timestamps")
         plt.legend()
         plt.show()
-
-    # resampling and smoothing the data while keeping the same timestamps
-    signal_duration = nan_adjusted_timestamps[-1] - nan_adjusted_timestamps[0]
-    resampled_node_count = int(signal_duration // 100)
-    resampled_data = [[] for _ in range(ADC_COUNT)]
-    for i in range(ADC_COUNT):
-        resampled_data[i] = resample_data(nan_adjusted_data[i], resampled_node_count)
-    resampled_timestamps = resample_data(nan_adjusted_timestamps, resampled_node_count)
-    if adc_data.plot_enabled:
-        plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
-        plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
-        plt.title("Resampled Signal")
-        plt.legend()
-        plt.show()
+    
+    resampled_data, resampled_timestamps = resample_adc_data_and_timestamps(nan_adjusted_data, nan_adjusted_timestamps, adc_data)
 
     adc_data.final_adc_data = resampled_data
-    adc_data.final_adc_timestamps = resampled_timestamps
+    adc_data.final_adc_timestamps = resampled_timestamps 
 
 def outlier_detection(adc_data, target_adc):
+    """ TODO: Implement docstring
+    """
     breaths = calculate_breaths(adc_data, target_adc)
-    time_outliers(adc_data, target_adc, breaths)
-    amplitude_outliers(adc_data, target_adc, breaths)
-    remove_outliers_and_remake_signal(adc_data, target_adc)
+    non_time_outlier_signal = time_outliers(adc_data, target_adc, breaths)
+    non_amplitude_outlier_signal = amplitude_outliers(adc_data, target_adc, breaths)
+    remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_signal, non_amplitude_outlier_signal)
