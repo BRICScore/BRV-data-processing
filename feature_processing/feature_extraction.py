@@ -69,7 +69,7 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
         Creates breath_peaks and their indices in adc_data for the segment.
     
     """
-    min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
+    min_spread_of_peaks = MIN_PEAK_SPREAD    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
     breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
                                                   height=min_value_for_peak,
@@ -448,7 +448,7 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     if adc_data.plot_enabled:
         plt.figure(figsize=(8,6))
         plt.title(f"{input_file} breath track")
-        # TODO: substitute numbers with areas of the chest names
+
         plt.plot([1,2,3,4,5], belt_share, "-o", label="belt share in breathing")
         plt.plot([1,2,3,4,5], belt_share_std, "-o", label="belt share std")
         plt.xlabel("belt number")
