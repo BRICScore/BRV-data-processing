@@ -1,7 +1,26 @@
 from config import *
 
 def calculate_breaths(adc_data, target_adc):
-    """ TODO: Implement docstring
+    """
+        Generate an array of dictionaries representing the separated breaths that contain the
+        breath data, timestamps, and metadata for each breath.
+
+        Parameters
+        ----------
+        adc_data : ADCdata
+            The ADCdata object containing the normalized ADC data and timestamps.
+        target_adc : int
+            The index of the ADC to analyze for outliers.
+
+        Returns
+        -------
+        breaths : list of dictionaries
+            A list of dictionaries representing the separated breaths that contain the
+            breath data, timestamps, and metadata for each breath.
+        
+        Side Effects
+        ------------
+        This function has no side effects
     """
     local_minima = adc_data.signal_minima
     breaths = []
@@ -26,31 +45,71 @@ def calculate_breaths(adc_data, target_adc):
         })
     return breaths
 
-def resample_data(y, new_len=100):
-    """ TODO: Implement docstring
+def resample_data(y, new_len):
     """
+        Resample the given data to new_len using cubic spline interpolation.
+
+        Parameters
+        ----------
+        y : numpy.ndarray
+            The input data to be resampled.
+        new_len : int
+            The desired length of the resampled data.
+
+        Returns
+        -------
+        numpy.ndarray
+            The resampled data with length new_len.
+        
+        Side Effects
+        ------------
+        This function has no side effects
+    """
+        
     x_old = np.linspace(0, 1, len(y))
     x_new =  np.linspace(0, 1, new_len)
     # f = spi.CubicSpline(x_old, old_y)
     f = spi.interp1d(x_old, y, kind='cubic')
     return f(x_new)
 
-def resample_adc_data_and_timestamps(data, timestamps, adc_data):
-    # resampling and smoothing the data while keeping the same timestamps
-    # almost for sure nan_adjusted_timestamps[0] will be 0.0 but I dont have he brainpower to check it right now
-    # TODO: check if nan_adjusted_timestamps[0] is always 0.0
-    """ TODO: Implement docstring
+def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=False):
     """
+        Resample the adc_data and timestamps that has had outlier breaths removed to resampled_node_count (a node every 100ms)
+
+        Parameters
+        ----------
+        data : ADCdata
+            The ADCdata object containing the ADC data with the outlier breaths removed.
+        timestamps : numpy.ndarray
+            The timestamps corresponding to the data object.
+        plot_enabled : bool
+            The plotting flag that determines whether to plot the resampled data.
+        target_adc : int
+            The index of the ADC to analyze, all adcs will be resampled but only the target_adc will be plotted if plot_enabled is True.
+
+        Returns
+        -------
+        resampled_data : list of numpy.ndarray
+            A list of numpy arrays containing the resampled ADC data for each ADC.
+        resampled_timestamps : numpy.ndarray
+            A numpy array containing the resampled timestamps.           
+        
+        Side Effects
+        ------------
+        This function may plot the resampled data if the plot_enabled flag is set to true.
+    """
+    # timestamps[0] for sure is 0.0... for sure...
     signal_duration = timestamps[-1] - timestamps[0]
     resampled_node_count = int(signal_duration // 100)
+    print(f"Signal duration: {signal_duration} ms, resampled_node_count: {resampled_node_count}")
     resampled_data = [[] for _ in range(ADC_COUNT)]
     resampled_timestamps = resample_data(timestamps, resampled_node_count)
     for i in range(ADC_COUNT):
         resampled_data[i] = resample_data(data[i], resampled_node_count)
 
-    if adc_data.plot_enabled:
-        plt.plot(timestamps, data[adc_data.target_adc], label='Cleaned Signal', color='blue')
-        plt.plot(resampled_timestamps, resampled_data[adc_data.target_adc], label='Resampled Signal', color='orange')
+    if plot_enabled:
+        plt.plot(timestamps, data[target_adc], label='Cleaned Signal', color='blue')
+        plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
         plt.title("Resampled Signal")
         plt.legend()
         plt.show()
@@ -58,13 +117,27 @@ def resample_adc_data_and_timestamps(data, timestamps, adc_data):
     return resampled_data, resampled_timestamps
 
 def time_outliers(adc_data, target_adc, breaths):
-    """ TODO: Implement docstring
-        Use numpydoc style for docstring?
-        1. What it does
-        2. Arguments
-        3. Returns
-        4. Side effects
-        5. Some notes?
+    """
+        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the shortest and longest 
+        breaths removed as outliers
+
+        Parameters
+        ----------
+        adc_data : ADCdata
+            The ADCdata object containing the normalized ADC data and timestamps.
+        target_adc : int
+            The index of the ADC to analyze for outliers.
+        breaths : list 
+            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
+
+        Returns
+        -------
+        non_outlier_signal : numpy.ndarray
+            The normalized ADC signal with outlier breaths set to NaN.           
+        
+        Side Effects
+        ------------
+        This function may plot the removed data if the plot_enabled flag is set to true.
     """
     breath_durations = [(breath["start_timestamp"], breath["duration"]) for breath in breaths]
     lower_bound = np.percentile([d[1] for d in breath_durations], PERCENTILE_THRESHOLD)
@@ -98,7 +171,27 @@ def time_outliers(adc_data, target_adc, breaths):
     return non_outlier_signal
 
 def amplitude_outliers(adc_data, target_adc, breaths):
-    """ TODO: Implement docstring
+    """
+        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the lowest and tallest 
+        breaths removed as outliers
+
+        Parameters
+        ----------
+        adc_data : ADCdata
+            The ADCdata object containing the normalized ADC data and timestamps.
+        target_adc : int
+            The index of the ADC to analyze for outliers.
+        breaths : list 
+            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
+
+        Returns
+        -------
+        non_outlier_signal : numpy.ndarray
+            The normalized ADC signal with outlier breaths set to NaN.           
+        
+        Side Effects
+        ------------
+        This function may plot the removed data if the plot_enabled flag is set to true.
     """
     amplitudes = [breath["amplitude"] for breath in breaths]
     lower_bound = np.percentile(amplitudes, PERCENTILE_THRESHOLD)
@@ -131,7 +224,28 @@ def amplitude_outliers(adc_data, target_adc, breaths):
     return non_outlier_signal
 
 def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_signal, non_amplitude_outlier_signal):
-    """ TODO: Implement docstring
+    """
+        Generate a adc_signal that has both time and amplitude outlier breaths removed.
+
+        Parameters
+        ----------
+        adc_data : ADCdata
+            The ADCdata object containing the normalized ADC data and timestamps.
+        target_adc : int
+            The index of the ADC to analyze for outliers.
+        non_time_outlier_signal : numpy.ndarray
+            The normalized ADC signal with time outlier breaths set to NaN.
+        non_amplitude_outlier_signal : numpy.ndarray
+            The normalized ADC signal with amplitude outlier breaths set to NaN.
+
+        Returns
+        -------
+        none
+        
+        Side Effects
+        ------------
+        This function may plot the removed data if the plot_enabled flag is set to true and 
+        sets the final_adc_data and final_adc_timestamps attributes of the adc_data object.
     """
     original_signal = copy.deepcopy(adc_data.adc_normalized_data)
 
@@ -190,13 +304,31 @@ def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_sig
         plt.legend()
         plt.show()
     
-    resampled_data, resampled_timestamps = resample_adc_data_and_timestamps(nan_adjusted_data, nan_adjusted_timestamps, adc_data)
+    resampled_data, resampled_timestamps = resample_adc_data_and_timestamps(nan_adjusted_data, nan_adjusted_timestamps, target_adc, adc_data.plot_enabled)
 
     adc_data.final_adc_data = resampled_data
     adc_data.final_adc_timestamps = resampled_timestamps 
 
 def outlier_detection(adc_data, target_adc):
-    """ TODO: Implement docstring
+    """
+        This function serves as the main function for outlier detection. It organizes and calls other functions 
+        in order to clean and resample the ADC data.
+
+        Parameters
+        ----------
+        adc_data : ADCdata
+            The ADCdata object containing the normalized ADC data and timestamps.
+        target_adc : int
+            The index of the ADC to analyze for outliers.
+
+        Returns
+        -------
+        non_outlier_signal : numpy.ndarray
+            The normalized ADC signal with outlier breaths set to NaN.           
+        
+        Side Effects
+        ------------
+        This function has no side effects.
     """
     breaths = calculate_breaths(adc_data, target_adc)
     non_time_outlier_signal = time_outliers(adc_data, target_adc, breaths)
