@@ -12,3 +12,11 @@ TARGET_ADC = 3
 INDEX = 0
 
 PERCENTILE_THRESHOLD = 1  # % for both lower and upper bounds
+
+#feature vector discard criteria
+MIN_BPM = 5.0
+MAX_BPM = 20.0
+
+INHALE_INDEX = 0
+EXHALE_INDEX = 2
+MIN_INHALE_OR_EXHALE_LENGTH = 1000.0

@@ -30,9 +30,9 @@ def count_breaths(adc_data):
     breath_counters = []
     for i in range(ADC_COUNT):
         breath_counters.append(len(np.where(np.diff(np.sign(adc_data.adc_normalized_data[i])))[0])/2)
-    # due to the variable characteristics of the signals from each ADC depending on the person,
-    # we take the signal with presumably the smallest number of disturbances as the counter
+
     adc_data.breath_count = np.max(breath_counters)
+    #adc_data.breath_count = breath_counters[TARGET_ADC-1]
     #----------------------------------------------------------------------------------------------
 
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
@@ -41,7 +41,7 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
                                                   height=min_value_for_peak,
                                                   distance=min_spread_of_peaks,
-                                                  prominence=0.00007)
+                                                  prominence=0.00015)
     breath_peak_indices, breath_dict = breath_peak_info
     breath_peaks = breath_dict['peak_heights']
     adc_data.breath_peaks = breath_peaks
@@ -243,8 +243,16 @@ def display_calculated_breath_phases(adc_data):
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
     count_breaths(adc_data)
+    bpm = adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)
+    if bpm < MIN_BPM or bpm > MAX_BPM: #discard criteria
+        print(f"{input_file} discarded for inadequate breath count ({bpm})")
+        return
     avg_breath_depth, avg_breath_depth_std_dev = calculate_average_breath_depth(adc_data)
+
     phases_avg_values = calculate_breathing_phases(adc_data)
+    if phases_avg_values[INHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH or phases_avg_values[EXHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH:
+        print(f"{input_file} discarded for inadequate phase lengths")
+        return
     # display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
