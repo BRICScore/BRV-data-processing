@@ -26,7 +26,21 @@ def plot_data(input_file, adc_data, avg_breath_depth):
     plt.show()
     
 def count_breaths(adc_data):
-    # counting breaths (zero-crossings of the signal) --------------------------------------------------
+    """The amount of zero-crossings in a signal divided by two.
+
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        Sets the value in adc_data.breath_count
+    """
     breath_counters = []
     for i in range(ADC_COUNT):
         breath_counters.append(len(np.where(np.diff(np.sign(adc_data.adc_normalized_data[i])))[0])/2)
@@ -36,6 +50,25 @@ def count_breaths(adc_data):
     #----------------------------------------------------------------------------------------------
 
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
+    """
+    Calculates breath depth for segment for specified ADC and returns values
+    based on mean and standard deviation.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    tuple: 
+        (mean: float, std: float)
+    
+    Side Effects
+    ------------
+        Creates breath_peaks and their indices in adc_data for the segment.
+    
+    """
     min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
     breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
@@ -55,6 +88,25 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     return avg_breath_depth, avg_breath_depth_std_dev
 
 def calculate_breathing_tract(adc_data):
+    """
+    Calculates the weights for each ADC(belt) where all of them sum up to 1.
+    Each of the values is the percentage of the belt's stretch compared to others.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    (belt_share, belt_share_std) : 
+        tuple with 2 NDArrays with subsequent belt values
+    
+    Side Effects
+    ------------
+        This function overrides the adc_data.breath_peaks and adc_data.breath_peak_indices
+    
+    """
     belt_share = np.zeros(shape=(ADC_COUNT))
     belt_share_std = np.zeros(shape=(ADC_COUNT))
     avg_sum = 0
@@ -70,6 +122,24 @@ def calculate_breathing_tract(adc_data):
     return belt_share, belt_share_std
 
 def detect_ep_end(adc_data):
+    """
+    Find all the points where phase 4 of breathing ends.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.breath_end_points
+        and adc_data.breath_end_point_indices
+    
+    """
     adc_data.breath_end_points = []
     adc_data.breath_end_point_indices = []
     for i in range(len(adc_data.breath_minima)):
@@ -99,9 +169,24 @@ def detect_ep_end(adc_data):
 
 # calculate by detecting where the data increases significantly
 def detect_expiratory_pause(adc_data):
-    # value to detect gradual slope as termination point
-    # apart from detecting it by flipping the sign of derivative
-    sensitivity = 0.5
+    """
+    Find all the points where phase 4 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.breath_minima
+        adc_data.breath_minimum_indices
+    
+    """
 
     adc_data.breath_minimum_indices = []
     adc_data.breath_minima = []
@@ -133,6 +218,24 @@ def detect_expiratory_pause(adc_data):
 
 # wait for data to stop decreasing
 def detect_exhale(adc_data):
+    """
+    Find all the points where phase 3 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.exhale_points
+        and adc_data.exhale_point_indices
+    
+    """
     adc_data.exhale_point_indices = []
     adc_data.exhale_points = []
     for i in range(len(adc_data.breath_peaks)):
@@ -172,9 +275,24 @@ def detect_inspiratory_pause(adc_data):
 
 # calculate start by going from the maxima backwards
 def detect_inhale(adc_data):
-    # value to detect gradual slope as termination point
-    # apart from detecting it by flipping the sign of derivative
-    sensitivity = 0.5
+    """
+    Find all the points where phase 1 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.inhale_points
+        and adc_data.inhale_point_indices
+    
+    """
 
     adc_data.inhale_point_indices = []
     adc_data.inhale_points = []
@@ -198,9 +316,26 @@ def detect_inhale(adc_data):
         adc_data.inhale_point_indices.append(inhale_point)
         adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point])
 
-# calculations assuming local maxima is the end of inhale and start of inspiratory pause
-# this function returns avg duration of each of the 4 breathing phases
+
 def calculate_breathing_phases(adc_data):
+    """
+    Calculations assuming local maxima is the end of inhale and start of inspiratory pause.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    phase_values : 
+        NDArray(4) where each following value is the value of a subsequent breathing phase
+    
+    Side Effects
+    ------------
+        This function has no side effects
+    
+    """
     detect_inhale(adc_data)
     detect_inspiratory_pause(adc_data)
     detect_exhale(adc_data)
@@ -242,6 +377,27 @@ def display_calculated_breath_phases(adc_data):
     plt.show()
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
+    """TODO
+    This function extracts all implemented features from the segment passed 
+    and prints them in "extracted_features.jsonl"
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+    input_file : 
+        name of the file(segment) with features being extracted
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function appends an entry (feature vector) to the extracted_features.jsonl file.
+        If you want to use it make sure to check whether the file should exist and have entries.
+    
+    """
     count_breaths(adc_data)
     bpm = adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)
     if bpm < MIN_BPM or bpm > MAX_BPM: #discard criteria
