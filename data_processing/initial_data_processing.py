@@ -87,7 +87,26 @@ def parse_adc_data_line(line: str):
     return ms_timestamp, adc_outputs
 
 def handle_input_data(input_file, adc_data):
-    """ TODO: Implement docstring
+    """
+        Read raw ADC data from input file, parse it line by line by calling parse_adc_data_line function
+        and add a timestamp to the data. Then store the data in adc_data.adc_output_data and adc_data.adc_normalized_data
+        for further processing.
+
+        Parameters
+        ----------
+        input_file: str
+            The name of the raw input file containing the ADC data
+        adc_data: ADCdata
+            An instance of the ADCdata class where the parsed ADC data and timestamps will be stored.
+
+        Returns
+        -------
+        None
+
+        Side Effects
+        ------------
+        This function modifies the adc_data object by writing data into the adc_data.adc_output_data and 
+        adc_data.adc_normalized_data attributes and writing the timestamps into adc_data.timestamps attribute.
     """
     
     first_timestamp = None
@@ -144,7 +163,24 @@ def split_data_into_segments(input_file, adc_data):
                     o_f.write(json.dumps(record) + "\n")
 
 def process_file(parser):
-    """ TODO: Implement docstring
+    """
+        This function serves as the entry point for processing the raw ADC data files.
+        It organizes and calls the necessary functions to read, parse, normalize, separate breaths,
+        detect outliers, and split the data into segments.
+
+        Parameters
+        ----------
+        parser: argparse.ArgumentParser
+            An instance of ArgumentParser that contains the command-line arguments for input file and plot option.
+
+        Returns
+        -------
+        None           
+        
+        Side Effects
+        ------------
+        This function modifies the adc_data object by writing data into adc_data.adc_normalized_data and 
+        adc_data.adc_voltafe_means attributes.
     """
 
     args = parser.parse_args()

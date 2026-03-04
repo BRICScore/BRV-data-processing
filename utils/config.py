@@ -5,6 +5,7 @@ import scipy.interpolate as spi
 import copy
 import json
 import sys
+import math
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
