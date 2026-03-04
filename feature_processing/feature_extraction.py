@@ -1,10 +1,4 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.signal
-
 from config import *
-PERSON_ID = 3
-ACTIVITY_ID = 4
 
 def plot_data(input_file, adc_data, avg_breath_depth):
     plt.figure(figsize=(15, 10))
@@ -46,7 +40,7 @@ def count_breaths(adc_data):
         breath_counters.append(len(np.where(np.diff(np.sign(adc_data.adc_normalized_data[i])))[0])/2)
 
     adc_data.breath_count = np.max(breath_counters)
-    #adc_data.breath_count = breath_counters[TARGET_ADC-1]
+    #adc_data.breath_count = breath_counters[TARGET_ADC]
     #----------------------------------------------------------------------------------------------
 
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
@@ -69,12 +63,12 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
         Creates breath_peaks and their indices in adc_data for the segment.
     
     """
-    min_spread_of_peaks = MIN_PEAK_SPREAD    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
+    min_spread_of_peaks = MIN_DISTANCE    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     signal = adc_data.adc_normalized_data[target_adc]
     std_dev_signal = np.std(signal)
     mean_signal = np.mean(signal)
     min_value_for_peak = mean_signal + std_dev_signal*STD_DEV_CONST
-    breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
+    breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc],
                                                   height=min_value_for_peak,
                                                   distance=min_spread_of_peaks)
     breath_peak_indices, breath_dict = breath_peak_info
@@ -86,7 +80,7 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     except:
         return min_value_for_peak, min_value_for_peak
     avg_breath_depth = np.mean(breath_peaks)
-    avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc-1])
+    avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc])
     return avg_breath_depth, avg_breath_depth_std_dev
 
 def calculate_breathing_tract(adc_data):
@@ -113,7 +107,7 @@ def calculate_breathing_tract(adc_data):
     belt_share_std = np.zeros(shape=(ADC_COUNT))
     avg_sum = 0
     avg_sum_std = 0
-    for i in range(1,ADC_COUNT+1):
+    for i in range(ADC_COUNT):
         avg, avg_std = calculate_average_breath_depth(adc_data, target_adc=i)
         avg_sum += avg
         avg_sum_std += avg_std
@@ -149,9 +143,9 @@ def detect_ep_end(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+2]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][breath_end]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][breath_end+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][breath_end+2]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -165,9 +159,9 @@ def detect_ep_end(adc_data):
                 breath_end += 1
             if breath_end == 0 or breath_end >= len(adc_data.timestamps)-1:
                 break
-        breath_end = min(breath_end, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
+        breath_end = min(breath_end, len(adc_data.adc_normalized_data[TARGET_ADC])-1)
         adc_data.breath_end_point_indices.append(breath_end)
-        adc_data.breath_end_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][breath_end])
+        adc_data.breath_end_points.append(adc_data.adc_normalized_data[TARGET_ADC][breath_end])
 
 # calculate by detecting where the data increases significantly
 def detect_expiratory_pause(adc_data):
@@ -197,9 +191,9 @@ def detect_expiratory_pause(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][minimum]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+2]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][minimum]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][minimum+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][minimum+2]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -214,9 +208,9 @@ def detect_expiratory_pause(adc_data):
                 minimum += 1
             if minimum == 0 or minimum >= len(adc_data.timestamps)-1:
                 break
-        minimum = min(minimum, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
+        minimum = min(minimum, len(adc_data.adc_normalized_data[TARGET_ADC])-1)
         adc_data.breath_minimum_indices.append(minimum)
-        adc_data.breath_minima.append(adc_data.adc_normalized_data[TARGET_ADC-1][minimum])
+        adc_data.breath_minima.append(adc_data.adc_normalized_data[TARGET_ADC][minimum])
 
 # wait for data to stop decreasing
 def detect_exhale(adc_data):
@@ -245,10 +239,10 @@ def detect_exhale(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+2]
-                val_after_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+3]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][exhale_point]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+2]
+                val_after_after_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+3]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -268,7 +262,7 @@ def detect_exhale(adc_data):
             if exhale_point == 0 or exhale_point >= len(adc_data.timestamps)-1:
                 break
         adc_data.exhale_point_indices.append(exhale_point)
-        adc_data.exhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point])
+        adc_data.exhale_points.append(adc_data.adc_normalized_data[TARGET_ADC][exhale_point])
 
 # calculate by detecting where the data drops significantly
 def detect_inspiratory_pause(adc_data):
@@ -302,9 +296,9 @@ def detect_inhale(adc_data):
         inhale_point = adc_data.breath_peak_indices[i]
         pointFound = False
         while not pointFound:
-            val_current = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point]
-            val_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-1]
-            val_before_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-2]
+            val_current = adc_data.adc_normalized_data[TARGET_ADC][inhale_point]
+            val_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1]
+            val_before_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-2]
             if val_current > val_prev:
                 if val_prev > val_before_prev:
                     inhale_point -= 1
@@ -316,7 +310,7 @@ def detect_inhale(adc_data):
             if inhale_point <= 0 or inhale_point == len(adc_data.timestamps)-1:
                 break
         adc_data.inhale_point_indices.append(inhale_point)
-        adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point])
+        adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC][inhale_point])
 
 
 def calculate_breathing_phases(adc_data):
@@ -366,7 +360,7 @@ def calculate_breathing_phases(adc_data):
     return phases_values
 
 def display_calculated_breath_phases(adc_data):
-    plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC-1])
+    plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC])
     NPtimestamps = np.array(adc_data.timestamps)
     plt.scatter(NPtimestamps[adc_data.inhale_point_indices], adc_data.inhale_points, c="blue") # start of inhale
     plt.scatter(NPtimestamps[adc_data.breath_peak_indices], adc_data.breath_peaks, c="red") # start of IP
