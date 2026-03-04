@@ -403,7 +403,7 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
 
     phases_avg_values = calculate_breathing_phases(adc_data)
     if phases_avg_values[INHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH or phases_avg_values[EXHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH:
-        print(f"{input_file} discarded for inadequate phase lengths")
+        print(f"{input_file} discarded for inadequate phase lengths {phases_avg_values}")
         return
     # display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)

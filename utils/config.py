@@ -27,11 +27,11 @@ PERCENTILE_THRESHOLD = 10  # % for both lower and upper bounds
 
 #feature vector discard criteria
 MIN_BPM = 5.0
-MAX_BPM = 20.0
+MAX_BPM = 25.0
 
 STD_DEV_CONST = 0.1 # when finding local maxima in breath separation we calculate mean + std_dev * STD_DEV_CONST as a threshold for peaks
 MIN_DISTANCE = 30 # minimum distance between peaks in breath separation
 
 INHALE_INDEX = 0
 EXHALE_INDEX = 2
-MIN_INHALE_OR_EXHALE_LENGTH = 1000.0
+MIN_INHALE_OR_EXHALE_LENGTH = 500.0
