@@ -70,11 +70,13 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     
     """
     min_spread_of_peaks = MIN_PEAK_SPREAD    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
-    min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
+    signal = adc_data.adc_normalized_data[target_adc]
+    std_dev_signal = np.std(signal)
+    mean_signal = np.mean(signal)
+    min_value_for_peak = mean_signal + std_dev_signal*STD_DEV_CONST
     breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
                                                   height=min_value_for_peak,
-                                                  distance=min_spread_of_peaks,
-                                                  prominence=0.00015)
+                                                  distance=min_spread_of_peaks)
     breath_peak_indices, breath_dict = breath_peak_info
     breath_peaks = breath_dict['peak_heights']
     adc_data.breath_peaks = breath_peaks
