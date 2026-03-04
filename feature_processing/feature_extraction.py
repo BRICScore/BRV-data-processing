@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.signal
 
 from config import *
 PERSON_ID = 3
@@ -35,25 +36,20 @@ def count_breaths(adc_data):
     #----------------------------------------------------------------------------------------------
 
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
-    breath_peaks = []
-    breath_peak_indices = []
-    last_peak_was_x_ago = 21
     min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
     min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
-    for i in range(1,len(adc_data.adc_normalized_data[target_adc-1])-1):
-        if adc_data.adc_normalized_data[target_adc-1][i-1] < adc_data.adc_normalized_data[target_adc-1][i] and adc_data.adc_normalized_data[target_adc-1][i] > adc_data.adc_normalized_data[target_adc-1][i+1]:
-            if last_peak_was_x_ago > min_spread_of_peaks and adc_data.adc_normalized_data[target_adc-1][i] > min_value_for_peak:
-                last_peak_was_x_ago = 0
-                breath_peaks.append(adc_data.adc_normalized_data[target_adc-1][i])
-                breath_peak_indices.append(i)
-        last_peak_was_x_ago += 1
+    breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
+                                                  height=min_value_for_peak,
+                                                  distance=min_spread_of_peaks,
+                                                  prominence=0.00007)
+    breath_peak_indices, breath_dict = breath_peak_info
+    breath_peaks = breath_dict['peak_heights']
     adc_data.breath_peaks = breath_peaks
     adc_data.breath_peak_indices = breath_peak_indices
     try:
         breath_peaks[0]
     except:
-        breath_peaks.append(min_value_for_peak) # in case peaks are empty give it minimum value
-        breath_peak_indices.append(0) # and index
+        return min_value_for_peak, min_value_for_peak
     avg_breath_depth = np.mean(breath_peaks)
     avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc-1])
     return avg_breath_depth, avg_breath_depth_std_dev
@@ -223,10 +219,13 @@ def calculate_breathing_phases(adc_data):
         if i != number_of_breaths-1:
             phases_values[3] += NPtimestamps[adc_data.inhale_point_indices[i+1]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
         """
-    phases_values[0] /= number_of_breaths
-    phases_values[1] /= number_of_breaths
-    phases_values[2] /= number_of_breaths
-    phases_values[3] /= number_of_breaths
+    try:
+        phases_values[0] /= number_of_breaths
+        phases_values[1] /= number_of_breaths
+        phases_values[2] /= number_of_breaths
+        phases_values[3] /= number_of_breaths
+    except:
+        return [0.0, 0.0, 0.0, 0.0]
     return phases_values
 
 def display_calculated_breath_phases(adc_data):
