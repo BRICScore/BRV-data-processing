@@ -14,7 +14,6 @@ import seaborn as sns
 
 sys.path.append("feature_processing")
 from eigenvalues_extraction import *
-from profile_extraction import extract_data_profiles
 import json
 import random
 
