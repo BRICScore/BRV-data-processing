@@ -86,6 +86,7 @@ def process_file(parser):
     adc_data = ADCdata()
 
     adc_data.plot_enabled = args.plot
+    adc_data.debug_plot_enabled = args.debugplot
 
     handle_input_data(input_file, adc_data)
 
