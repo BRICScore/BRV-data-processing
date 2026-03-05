@@ -468,6 +468,29 @@ def group_plot_mode_breaths(profiles):
     plt.show()
 
 def plot_profiles(profiles):
+    """
+    Creates a plot for data from features displaying an approximated breath
+    profile calculated from features.
+
+    Parameters
+    ----------
+    profiles : a dictionary where the keys are people tags and the value is a dictionary with
+    the mode values shown below
+        - "bpm_mode"
+        - "breath_depth_mode"
+        - "inhale_length_mode"
+        - "ip_length_mode"
+        - "exhale_length_mode"
+        - "ep_length_mode"
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        This function has no side effects.
+    """
     length = len(profiles)
     fig, ax = plt.subplots(length, 1)  
     i = 0
@@ -535,6 +558,22 @@ def plot_profiles(profiles):
 
 
 def create_profile_from_features():
+    """
+    This function creates a dictionary with appropriate mode data in a dictionary.
+    It then calls to plot the data
+
+    Parameters
+    ----------
+        None
+    
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function has no side effects.
+    """
     feature_data = FeatureData()
     create_indices_for_features(feature_data)
 
