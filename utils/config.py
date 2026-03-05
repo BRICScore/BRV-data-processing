@@ -21,10 +21,21 @@ TARGET_ADC = 3  # ADC to analyze for functions
 SEGMENT_LENGTH_MS = 120_000 # 2-minute segments
 ACCEPTABLE_DATA_LOSS = 0.2 # fraction threshold for the data to be analyzed
 
-TARGET_ADC = 3
+TARGET_ADC = 2 # indexed from ZERO "0" (0-4)
 INDEX = 0
+
+PERSON_ID = 3
+ACTIVITY_ID = 4
 
 PERCENTILE_THRESHOLD = 10  # % for both lower and upper bounds
 
+#feature vector discard criteria
+MIN_BPM = 5.0
+MAX_BPM = 25.0
+
 STD_DEV_CONST = 0.1 # when finding local maxima in breath separation we calculate mean + std_dev * STD_DEV_CONST as a threshold for peaks
 MIN_DISTANCE = 30 # minimum distance between peaks in breath separation
+
+INHALE_INDEX = 0
+EXHALE_INDEX = 2
+MIN_INHALE_OR_EXHALE_LENGTH = 500.0
