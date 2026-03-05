@@ -208,3 +208,5 @@ __marimo__/
 /data
 /features
 /results
+.vscode/settings.json
+/.vscode
