@@ -373,7 +373,7 @@ def display_calculated_breath_phases(adc_data):
     plt.show()
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
-    """TODO
+    """
     This function extracts all implemented features from the segment passed 
     and prints them in "extracted_features.jsonl"
     
@@ -405,7 +405,8 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     if phases_avg_values[INHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH or phases_avg_values[EXHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH:
         print(f"{input_file} discarded for inadequate phase lengths {phases_avg_values}")
         return
-    # display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
+    if adc_data.debug_plot_enabled:
+        display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)

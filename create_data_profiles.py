@@ -1,31 +1,56 @@
-import os
-import json
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import patches
-import pathlib
-import scipy
+from visualize_data import FeatureData, create_indices_for_features, feature_loading
 
 sys.path.append("utils")
 from config import *
 
-def get_people_list(files):
-    people = set()
-    for file in files:
-        if pathlib.Path(file).suffix != '.jsonl':
-            continue
-        file_person = file.split("_")[3]
-        people.add(file_person)
-    return list(people)
-
 def parse_jsonl_line(line):
+    """
+        Parses a single line of a JSONL file and extracts the timestamp and ADC values.
+
+        Parameters
+        ----------
+        line : str
+            A single line from a JSONL file containing a JSON object with 'timestamp' and 'adc_outputs'.
+        
+        Returns
+        -------
+        timestamp : int
+            The timestamp extracted from the JSON object.
+        adc_values : list of int
+            A list of ADC output values extracted from the JSON object.
+        
+        Side Effects
+        ------------
+        This function has no side effects.
+    """
+
     data = json.loads(line)
     timestamp = data.get('timestamp', 0)
     adc_values = [data.get('adc_outputs')[i] for i in range(ADC_COUNT)]
     return timestamp, adc_values
 
 def extract_breath_features(signal):
+    """ 
+        Initializes breath features and extracts depth and length from a single breath signal.
+
+        Parameters
+        ----------
+        signal : list of float
+            The normalized ADC signal corresponding to a single breath.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the initialized and extracted breath features:
+            depth, length, inhale duration, inspiratory pause duration, exhale duration
+            and expiratory pause duration.
+
+        Side Effects        
+        ------------
+        This function has no side effects.
+    """
+
     depth = np.max(signal) - np.min(signal)
     length = len(signal)
 
@@ -39,26 +64,59 @@ def extract_breath_features(signal):
     }
 
 def detect_breath_peaks(signal):
-    maxima = []
-    min_distance = 10
+    """
+    Detects breath peaks (minima and maxima) in the given signal using the scipy.signal.find_peaks function.
 
+    Parameters
+    ----------
+    signal : list of float
+        The normalized ADC signal from which to detect breath peaks.
+
+    Returns
+    -------
+    tuple: list of int (minima), list of int (maxima)
+        A tuple containing the indices of the detected minima and maxima.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
+    inverted_signal = [-x for x in signal]
     mean_signal = np.mean(signal)
-    mean_plus_signal = mean_signal + (mean_signal * 0.3)
-    mean_minus_signal = mean_signal - (mean_signal * 0.3)
-    maxima, _ = scipy.signal.find_peaks(signal, distance=min_distance)
-    for peak in maxima:
-        if signal[peak] < mean_plus_signal:
-            maxima = np.delete(maxima, np.where(maxima == peak))
+    std_dev_signal = np.std(signal)
+    maxima, _ = scipy.signal.find_peaks(signal, distance=MIN_DISTANCE, height=mean_signal + std_dev_signal*STD_DEV_CONST)
+    minima, _ = scipy.signal.find_peaks(inverted_signal, distance=MIN_DISTANCE, height=mean_signal + std_dev_signal*STD_DEV_CONST)
 
-    minima = []
-    minima, _ = scipy.signal.find_peaks([-s for s in signal], distance=min_distance)
-    for minimum in minima:
-        if signal[minimum] > mean_minus_signal:
-            minima = np.delete(minima, np.where(minima == minimum))
-
-    return maxima, minima
+    return minima, maxima
 
 def get_mode_breath(all_breath_data, mode_values, average_values):
+    """ 
+    Identifies the most representative breath (mode breath) from the given breath dataset. The choice
+    is based on a weighted distance metric that considers the breath's depth, length and breathing 
+    phases' durations (inhale and exhale, the inspiratory and expiratory pauses have been excluded).
+    
+    Parameters
+    ----------
+    all_breath_data : list of dict
+        A list of dictionaries, where each dictionary contains the features of a single breath.
+    mode_values : dict
+        A dictionary containing the mode values for breath features (depth, length, inhale duration,
+        exhale duration, inspiratory pause duration, expiratory pause duration).
+    average_values : dict
+        A dictionary containing the average values for breath features (depth, length, inhale duration,
+        exhale duration, inspiratory pause duration, expiratory pause duration).
+
+    Returns
+    -------
+    representative_breath : dict
+        A dictionary containing the features of the most representative breath (mode breath) from the dataset.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
     mode_dist = float('inf')
     representative_breath = None
 
@@ -89,6 +147,32 @@ def get_mode_breath(all_breath_data, mode_values, average_values):
     return representative_breath
 
 def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak_index, start_idx, end_idx):
+    """ 
+    Calculates the durations of the breathing phases (inhale, inspiratory pause, exhale, expiratory pause) for a single breath.
+
+    Parameters
+    ----------
+    breath_signal : list of float
+        The normalized ADC signal corresponding to a single breath.
+    breath_timestamps : list of int
+        The timestamps corresponding to the breath signal.
+    peak_index : int
+        The index of the peak (maximum) in the breath signal.
+    start_idx : int
+        The index of the start of the breath (first minimum).
+    end_idx : int
+        The index of the end of the breath (the minimum after the peak).
+
+    Returns
+    -------
+    phases : list of float
+        A list containing the durations of the breathing phases: [inhale, inspiratory pause, exhale, expiratory pause].
+    
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
     if len(breath_signal) < 3:
         return 0.0, 0.0, 0.0, 0.0
     
@@ -100,36 +184,71 @@ def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak
 
     return phases
 
+def extract_breath_data_from_file(file):
+    """
+    Extracts minima and maxima indices from a given file (from the ./results directory)
+    as well as the corresponding timestamps and ADC signals.
 
-def calculate_breath_characteristics(people_files, all_breath_data):
+    Parameters
+    ----------
+    file : str
+        The name of the file from which to extract breath data. The file should be located in the ./results directory.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the extracted breath data:
+        - minima: A list of indices of detected minima in the ADC signal.
+        - maxima: A list of indices of detected maxima in the ADC signal.
+        - timestamps: A list of timestamps corresponding to the ADC signal samples.
+        - adc_signals: A list of lists, each inner list contains the ADC signal values for one of the 5 ADC channels.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
+    with open (f'./results/{file}', 'r') as f:
+        file_lines = f.read().strip().split("\n")
+    timestamps = []
+    adc_signals = [[] for _ in range(5)]
+
+    for line in file_lines:
+        if line:
+            timestamp, adc_values = parse_jsonl_line(line)
+            timestamps.append(timestamp)
+            for i in range(5):
+                adc_signals[i].append(adc_values[i])
+    minima, maxima = detect_breath_peaks(adc_signals[TARGET_ADC])
+    return { "minima": minima, "maxima": maxima, "timestamps": timestamps, "adc_signals": adc_signals }
+
+def calculate_breath_characteristics(people_files):
+    """
+    Calculates breath characteristics (depth, length, inhale duration, exhale duration) for each breath in the given files.
+
+    Parameters
+    ----------
+    people_files : list of str
+        A list of file names (located in the ./results directory) from which to extract and calculate breath
+        characteristics - they describe the breathing patterns of a single person.
+
+    Returns
+    -------
+    all_breath_data : list of dict
+        A list of dictionaries, where each dictionary contains the features of a single breath extracted from the given files.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
+    all_breath_data = []
     for file in people_files:
-        if not file.endswith('.jsonl'):
-            continue
-        with open(f'./results/{file}', 'r') as f:
-            file_lines = f.read().strip().split("\n")
-        timestamps = []
-        adc_signals = [[] for _ in range(5)]    
-
-        for line in file_lines:
-            if line:
-                timestamp, adc_values = parse_jsonl_line(line)
-                # print(f"Timestamp: {timestamp}, ADC Values: {adc_values}")
-                timestamps.append(timestamp)
-                for i in range(5):
-                    adc_signals[i].append(adc_values[i])
-        maxima, minima = detect_breath_peaks(adc_signals[TARGET_ADC])
-
-        # if 'MK' in file:
-        #     plt.figure(figsize=(12, 6))
-        #     plt.plot(timestamps, adc_signals[TARGET_ADC], label='ADC Signal', color='blue')
-        #     plt.scatter([timestamps[i] for i in maxima], [adc_signals[TARGET_ADC][i] for i in maxima], color='red', label='Detected Peaks', marker='x')
-        #     plt.scatter([timestamps[i] for i in minima], [adc_signals[TARGET_ADC][i] for i in minima], color='green', label='Detected Valleys', marker='o')
-        #     plt.title(f'Breath Signal with Detected Peaks for file {file}')
-        #     plt.xlabel('Time (ms)')
-        #     plt.ylabel('ADC Voltage')
-        #     plt.legend()
-        #     plt.grid()
-        #     plt.show()
+        file_breath_data = extract_breath_data_from_file(file)
+        minima = file_breath_data["minima"]
+        maxima = file_breath_data["maxima"]
+        timestamps = file_breath_data["timestamps"]
+        adc_signals = file_breath_data["adc_signals"]
 
         breath_features = {}
         for i in range(len(minima)-1):
@@ -139,20 +258,21 @@ def calculate_breath_characteristics(people_files, all_breath_data):
             breath_timestamps = timestamps[start_idx:end_idx]
             if len(breath_signal) == 0:
                 continue
-            breath_features = extract_breath_features(breath_signal)
 
+            breath_features = extract_breath_features(breath_signal)
             breath_features['file_name'] = file
             breath_features['signal'] = breath_signal
             breath_features['timestamps'] = breath_timestamps
 
+            # Find all maxima within the breath
             peaks_in_breath = []
             for peak in maxima:
                 if start_idx <= peak < end_idx:
                     peaks_in_breath.append(peak)
                     break
 
-            peaks_in_breath.sort()
-            peak_in_breath = peaks_in_breath[0] if peaks_in_breath else None
+            # If there is more than one peak we want to take the "highest" one
+            peak_in_breath = np.max(peaks_in_breath) if peaks_in_breath else None
 
             if peak_in_breath is not None:
                 phases = calculate_breathing_phases_for_breath(adc_signals[TARGET_ADC], timestamps, peak_in_breath, start_idx, end_idx)
@@ -161,25 +281,42 @@ def calculate_breath_characteristics(people_files, all_breath_data):
                 breath_features['exhale'] = phases[2]
                 breath_features['expiratory_pause'] = phases[3]
 
-                all_breath_data.append(breath_features)
-            
+                all_breath_data.append(breath_features)  
+    return all_breath_data          
 
 def get_mode_param(all_breath_data, param):
+    """ 
+    Calculates the mode value for a given breath parameter (e.g., depth, length, inhale duration) from the breath dataset.
+
+    Parameters
+    ---------- 
+    all_breath_data : list of dict
+        A list of dictionaries, where each dictionary contains the features of a single breath.
+    param : str
+        The name of the breath parameter for which to calculate the mode (e.g., 'depth', 'length', 'inhale', 'exhale').
+
+    Returns
+    -------
+    mode_value : float
+        The mode value for the specified breath parameter, calculated using a histogram-based approach.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
     values = [breath[param] for breath in all_breath_data]
-    non_zero_values = [v for v in values if v > 0]
+    non_zero_values = [v for v in values if v != 0]
     if len(non_zero_values) == 0:
         return 0.0
+    
     hist, bin_edges = np.histogram(non_zero_values, bins=50)
-
     max_count = np.max(hist)
-    # print(f"Histogram for {param}: {hist}, Bin edges: {bin_edges}")
-    # print(f"Max count for {param}: {max_count}")
-    # print(f"Values for {param}: {values}"   )
-
     max_bins = np.where(hist == max_count)[0]
+
     if len(max_bins) > 1:
-        avg_value = np.mean(values)
-        closest_bin = min(max_bins, key=lambda b: abs((bin_edges[b] + bin_edges[b + 1]) / 2 - avg_value))
+        mean_value = np.mean(values)
+        closest_bin = min(max_bins, key=lambda b: abs((bin_edges[b] + bin_edges[b + 1]) / 2 - mean_value))
         mode_upper_bin = closest_bin
     else:
         mode_upper_bin = np.argmax(hist)
@@ -187,55 +324,91 @@ def get_mode_param(all_breath_data, param):
     mode_depth = (bin_edges[mode_upper_bin] + bin_edges[mode_upper_bin + 1]) / 2
     return mode_depth
 
-def create_person_profile(all_breath_data):
-    # print(all_breath_data)
+def calculate_mode_and_avg_features(all_breath_data):
+    """
+    Calculates the average and mode values for breath characteristics (depth, length, inhale duration,
+    exhale duration) from the breath dataset.
 
+    Parameters
+    ----------
+    all_breath_data : list of dict
+        A list of dictionaries, where each dictionary contains the features of a single breath.
+
+    Returns
+    -------
+    average_values : dict
+        A dictionary containing the average values for breath characteristics (depth, length, inhale duration,
+        exhale duration).
+    mode_values : dict
+        A dictionary containing the mode values for breath characteristics (depth, length, inhale duration,
+        exhale duration).
+    
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
+    rounding_precision = 10
     average_values = {
-        "avg_depth": round(np.mean([breath['depth'] for breath in all_breath_data]), 10),
-        "avg_length": round(np.mean([breath['length'] for breath in all_breath_data]), 10),
-        "avg_inhale": round(np.mean([breath['inhale'] for breath in all_breath_data]), 10),
-        "avg_inspiratory_pause": round(np.mean([breath['inspiratory_pause'] for breath in all_breath_data]), 10),
-        "avg_exhale": round(np.mean([breath['exhale'] for breath in all_breath_data]), 10),
-        "avg_expiratory_pause": round(np.mean([breath['expiratory_pause'] for breath in all_breath_data]), 10),
+        "avg_depth": round(np.mean([breath['depth'] for breath in all_breath_data]), rounding_precision),
+        "avg_length": round(np.mean([breath['length'] for breath in all_breath_data]), rounding_precision),
+        "avg_inhale": round(np.mean([breath['inhale'] for breath in all_breath_data]), rounding_precision),
+        "avg_inspiratory_pause": round(np.mean([breath['inspiratory_pause'] for breath in all_breath_data]), rounding_precision),
+        "avg_exhale": round(np.mean([breath['exhale'] for breath in all_breath_data]), rounding_precision),
+        "avg_expiratory_pause": round(np.mean([breath['expiratory_pause'] for breath in all_breath_data]), rounding_precision),
     }
 
     mode_values = {
-        "mode_depth": round(get_mode_param(all_breath_data, 'depth'), 10),
-        "mode_length": round(get_mode_param(all_breath_data, 'length'), 10),
-        "mode_inhale": round(get_mode_param(all_breath_data, 'inhale'), 10),
-        "mode_inspiratory_pause": round(get_mode_param(all_breath_data, 'inspiratory_pause'), 10),
-        "mode_exhale": round(get_mode_param(all_breath_data, 'exhale'), 10),
-        "mode_expiratory_pause": round(get_mode_param(all_breath_data, 'expiratory_pause'), 10),
+        "mode_depth": round(get_mode_param(all_breath_data, 'depth'), rounding_precision),
+        "mode_length": round(get_mode_param(all_breath_data, 'length'), rounding_precision),
+        "mode_inhale": round(get_mode_param(all_breath_data, 'inhale'), rounding_precision),
+        "mode_inspiratory_pause": round(get_mode_param(all_breath_data, 'inspiratory_pause'), rounding_precision),
+        "mode_exhale": round(get_mode_param(all_breath_data, 'exhale'), rounding_precision),
+        "mode_expiratory_pause": round(get_mode_param(all_breath_data, 'expiratory_pause'), rounding_precision),
     }
     return average_values, mode_values
 
 def create_data_profiles():
+    """
+    Creates data profiles for each person in the analyzed dataset (./results) by processing their respective files
+    and calculating a set of characteristics.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    people_profiles : dict
+        A dictionary where each key is a person's identifier (e.g., initials) and the value is another dictionary containing:
+        - average_values: A dictionary of average breath characteristics (depth, length, inhale duration, exhale duration).
+        - mode_values: A dictionary of mode breath characteristics (depth, length, inhale duration, exhale duration).
+        - mode_breath: A dictionary containing the signal and timestamps of the mode breath for that person.
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
     files = [file.name for file in os.scandir('./results')]
-    people = get_people_list(files)
-    profiles ={}
 
-    for person in people:
-        people_files = []
-        for file in files:
-            if pathlib.Path(file).suffix != '.jsonl':
-                continue
-            if f"_{person}_" in file:
-                people_files.append(file)
-        
-        all_breath_data = []
-        calculate_breath_characteristics(people_files, all_breath_data)
+    people_files = dict()
+    people_profiles = dict()
+    for file in files:
+        if pathlib.Path(file).suffix != '.jsonl':
+            continue
+        person = file.split("_")[3]
+        if person not in people_files:
+            people_files[person] = []
+        people_files[person].append(file)
 
-        average_values, mode_values = create_person_profile(all_breath_data)    
+    for person in people_files:
+        all_breath_data = calculate_breath_characteristics(people_files[person])
+
+        average_values, mode_values = calculate_mode_and_avg_features(all_breath_data)    
         mode_breath = get_mode_breath(all_breath_data, mode_values, average_values)
-        profiles[person] = (average_values, mode_values, mode_breath)
-        # print(f"Profile for {person}: {(average_values, mode_values)}")
-        
-        # Plot mode breath on top of its source file
-        if mode_breath:
-            plot_mode_breath_on_file(mode_breath)
-            # pass
+        people_profiles[person] = {"average_values": average_values, "mode_values": mode_values, "mode_breath": mode_breath}
 
-    group_plot_mode_breaths(profiles)
+    return people_profiles
 
 def plot_mode_breath_on_file(mode_breath):
     file_name = mode_breath['file_name']
@@ -294,10 +467,30 @@ def group_plot_mode_breaths(profiles):
     plt.savefig(f'./results/mode_breaths_all_people.png')
     plt.show()
 
-from visualize_data import FeatureData, create_indices_for_features, feature_loading
-import math
-
 def plot_profiles(profiles):
+    """
+    Creates a plot for data from features displaying an approximated breath
+    profile calculated from features.
+
+    Parameters
+    ----------
+    profiles : a dictionary where the keys are people tags and the value is a dictionary with
+    the mode values shown below
+        - "bpm_mode"
+        - "breath_depth_mode"
+        - "inhale_length_mode"
+        - "ip_length_mode"
+        - "exhale_length_mode"
+        - "ep_length_mode"
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        This function has no side effects.
+    """
     length = len(profiles)
     fig, ax = plt.subplots(length, 1)  
     i = 0
@@ -365,6 +558,22 @@ def plot_profiles(profiles):
 
 
 def create_profile_from_features():
+    """
+    This function creates a dictionary with appropriate mode data in a dictionary.
+    It then calls to plot the data
+
+    Parameters
+    ----------
+        None
+    
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function has no side effects.
+    """
     feature_data = FeatureData()
     create_indices_for_features(feature_data)
 
@@ -398,9 +607,13 @@ def create_profile_from_features():
         
 
 def main():
-    create_data_profiles()
-    create_profile_from_features()
+    people_profiles = create_data_profiles()
 
+    for person in people_profiles:
+        plot_mode_breath_on_file(people_profiles[person]["mode_breath"])
+
+    group_plot_mode_breaths(people_profiles)
+    create_profile_from_features()
 
 if __name__ == "__main__":
     main()
