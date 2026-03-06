@@ -14,7 +14,10 @@ def parser_setup():
                     help='A required argument containing input file for the programme')
 
     parser.add_argument('--plot', action='store_true',
-                    help='A boolean switch for the plotting')
+                    help='A boolean switch for plotting transformations')
+    
+    parser.add_argument('--debugplot', action='store_true',
+                    help='A boolean switch for plotting while debugging')
 
     return parser
 

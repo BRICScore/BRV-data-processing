@@ -1,10 +1,4 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.signal
-
 from config import *
-PERSON_ID = 3
-ACTIVITY_ID = 4
 
 def plot_data(input_file, adc_data, avg_breath_depth):
     plt.figure(figsize=(15, 10))
@@ -26,22 +20,57 @@ def plot_data(input_file, adc_data, avg_breath_depth):
     plt.show()
     
 def count_breaths(adc_data):
-    # counting breaths (zero-crossings of the signal) --------------------------------------------------
+    """The amount of zero-crossings in a signal divided by two.
+
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        Sets the value in adc_data.breath_count
+    """
     breath_counters = []
     for i in range(ADC_COUNT):
         breath_counters.append(len(np.where(np.diff(np.sign(adc_data.adc_normalized_data[i])))[0])/2)
-    # due to the variable characteristics of the signals from each ADC depending on the person,
-    # we take the signal with presumably the smallest number of disturbances as the counter
+
     adc_data.breath_count = np.max(breath_counters)
+    #adc_data.breath_count = breath_counters[TARGET_ADC]
     #----------------------------------------------------------------------------------------------
 
 def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
-    min_spread_of_peaks = 20    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
-    min_value_for_peak = 0.00015 # TODO: adjust based on empirical data
-    breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc-1],
+    """
+    Calculates breath depth for segment for specified ADC and returns values
+    based on mean and standard deviation.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    tuple: 
+        (mean: float, std: float)
+    
+    Side Effects
+    ------------
+        Creates breath_peaks and their indices in adc_data for the segment.
+    
+    """
+    min_spread_of_peaks = MIN_DISTANCE    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
+    signal = adc_data.adc_normalized_data[target_adc]
+    std_dev_signal = np.std(signal)
+    mean_signal = np.mean(signal)
+    min_value_for_peak = mean_signal + std_dev_signal*STD_DEV_CONST
+    breath_peak_info = scipy.signal.find_peaks(x=adc_data.adc_normalized_data[target_adc],
                                                   height=min_value_for_peak,
-                                                  distance=min_spread_of_peaks,
-                                                  prominence=0.00007)
+                                                  distance=min_spread_of_peaks)
     breath_peak_indices, breath_dict = breath_peak_info
     breath_peaks = breath_dict['peak_heights']
     adc_data.breath_peaks = breath_peaks
@@ -51,15 +80,34 @@ def calculate_average_breath_depth(adc_data, target_adc=TARGET_ADC):
     except:
         return min_value_for_peak, min_value_for_peak
     avg_breath_depth = np.mean(breath_peaks)
-    avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc-1])
+    avg_breath_depth_std_dev = np.std(adc_data.adc_normalized_data[target_adc])
     return avg_breath_depth, avg_breath_depth_std_dev
 
 def calculate_breathing_tract(adc_data):
+    """
+    Calculates the weights for each ADC(belt) where all of them sum up to 1.
+    Each of the values is the percentage of the belt's stretch compared to others.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    (belt_share, belt_share_std) : 
+        tuple with 2 NDArrays with subsequent belt values
+    
+    Side Effects
+    ------------
+        This function overrides the adc_data.breath_peaks and adc_data.breath_peak_indices
+    
+    """
     belt_share = np.zeros(shape=(ADC_COUNT))
     belt_share_std = np.zeros(shape=(ADC_COUNT))
     avg_sum = 0
     avg_sum_std = 0
-    for i in range(1,ADC_COUNT+1):
+    for i in range(ADC_COUNT):
         avg, avg_std = calculate_average_breath_depth(adc_data, target_adc=i)
         avg_sum += avg
         avg_sum_std += avg_std
@@ -70,6 +118,24 @@ def calculate_breathing_tract(adc_data):
     return belt_share, belt_share_std
 
 def detect_ep_end(adc_data):
+    """
+    Find all the points where phase 4 of breathing ends.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.breath_end_points
+        and adc_data.breath_end_point_indices
+    
+    """
     adc_data.breath_end_points = []
     adc_data.breath_end_point_indices = []
     for i in range(len(adc_data.breath_minima)):
@@ -77,9 +143,9 @@ def detect_ep_end(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][breath_end+2]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][breath_end]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][breath_end+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][breath_end+2]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -93,15 +159,30 @@ def detect_ep_end(adc_data):
                 breath_end += 1
             if breath_end == 0 or breath_end >= len(adc_data.timestamps)-1:
                 break
-        breath_end = min(breath_end, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
+        breath_end = min(breath_end, len(adc_data.adc_normalized_data[TARGET_ADC])-1)
         adc_data.breath_end_point_indices.append(breath_end)
-        adc_data.breath_end_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][breath_end])
+        adc_data.breath_end_points.append(adc_data.adc_normalized_data[TARGET_ADC][breath_end])
 
 # calculate by detecting where the data increases significantly
 def detect_expiratory_pause(adc_data):
-    # value to detect gradual slope as termination point
-    # apart from detecting it by flipping the sign of derivative
-    sensitivity = 0.5
+    """
+    Find all the points where phase 4 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.breath_minima
+        adc_data.breath_minimum_indices
+    
+    """
 
     adc_data.breath_minimum_indices = []
     adc_data.breath_minima = []
@@ -110,9 +191,9 @@ def detect_expiratory_pause(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][minimum]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][minimum+2]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][minimum]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][minimum+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][minimum+2]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -127,12 +208,30 @@ def detect_expiratory_pause(adc_data):
                 minimum += 1
             if minimum == 0 or minimum >= len(adc_data.timestamps)-1:
                 break
-        minimum = min(minimum, len(adc_data.adc_normalized_data[TARGET_ADC-1])-1)
+        minimum = min(minimum, len(adc_data.adc_normalized_data[TARGET_ADC])-1)
         adc_data.breath_minimum_indices.append(minimum)
-        adc_data.breath_minima.append(adc_data.adc_normalized_data[TARGET_ADC-1][minimum])
+        adc_data.breath_minima.append(adc_data.adc_normalized_data[TARGET_ADC][minimum])
 
 # wait for data to stop decreasing
 def detect_exhale(adc_data):
+    """
+    Find all the points where phase 3 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.exhale_points
+        and adc_data.exhale_point_indices
+    
+    """
     adc_data.exhale_point_indices = []
     adc_data.exhale_points = []
     for i in range(len(adc_data.breath_peaks)):
@@ -140,10 +239,10 @@ def detect_exhale(adc_data):
         pointFound = False
         while not pointFound:
             try:
-                val_current = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point]
-                val_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+1]
-                val_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+2]
-                val_after_after_next = adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point+3]
+                val_current = adc_data.adc_normalized_data[TARGET_ADC][exhale_point]
+                val_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+1]
+                val_after_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+2]
+                val_after_after_next = adc_data.adc_normalized_data[TARGET_ADC][exhale_point+3]
             except:
                 val_current = 0.0
                 val_next = 0.0
@@ -163,7 +262,7 @@ def detect_exhale(adc_data):
             if exhale_point == 0 or exhale_point >= len(adc_data.timestamps)-1:
                 break
         adc_data.exhale_point_indices.append(exhale_point)
-        adc_data.exhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][exhale_point])
+        adc_data.exhale_points.append(adc_data.adc_normalized_data[TARGET_ADC][exhale_point])
 
 # calculate by detecting where the data drops significantly
 def detect_inspiratory_pause(adc_data):
@@ -172,9 +271,24 @@ def detect_inspiratory_pause(adc_data):
 
 # calculate start by going from the maxima backwards
 def detect_inhale(adc_data):
-    # value to detect gradual slope as termination point
-    # apart from detecting it by flipping the sign of derivative
-    sensitivity = 0.5
+    """
+    Find all the points where phase 1 of breathing starts.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function registers the points in adc_data.inhale_points
+        and adc_data.inhale_point_indices
+    
+    """
 
     adc_data.inhale_point_indices = []
     adc_data.inhale_points = []
@@ -182,9 +296,9 @@ def detect_inhale(adc_data):
         inhale_point = adc_data.breath_peak_indices[i]
         pointFound = False
         while not pointFound:
-            val_current = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point]
-            val_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-1]
-            val_before_prev = adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point-2]
+            val_current = adc_data.adc_normalized_data[TARGET_ADC][inhale_point]
+            val_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1]
+            val_before_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-2]
             if val_current > val_prev:
                 if val_prev > val_before_prev:
                     inhale_point -= 1
@@ -196,11 +310,28 @@ def detect_inhale(adc_data):
             if inhale_point <= 0 or inhale_point == len(adc_data.timestamps)-1:
                 break
         adc_data.inhale_point_indices.append(inhale_point)
-        adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC-1][inhale_point])
+        adc_data.inhale_points.append(adc_data.adc_normalized_data[TARGET_ADC][inhale_point])
 
-# calculations assuming local maxima is the end of inhale and start of inspiratory pause
-# this function returns avg duration of each of the 4 breathing phases
+
 def calculate_breathing_phases(adc_data):
+    """
+    Calculations assuming local maxima is the end of inhale and start of inspiratory pause.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    phase_values : 
+        NDArray(4) where each following value is the value of a subsequent breathing phase
+    
+    Side Effects
+    ------------
+        This function has no side effects
+    
+    """
     detect_inhale(adc_data)
     detect_inspiratory_pause(adc_data)
     detect_exhale(adc_data)
@@ -229,7 +360,7 @@ def calculate_breathing_phases(adc_data):
     return phases_values
 
 def display_calculated_breath_phases(adc_data):
-    plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC-1])
+    plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[TARGET_ADC])
     NPtimestamps = np.array(adc_data.timestamps)
     plt.scatter(NPtimestamps[adc_data.inhale_point_indices], adc_data.inhale_points, c="blue") # start of inhale
     plt.scatter(NPtimestamps[adc_data.breath_peak_indices], adc_data.breath_peaks, c="red") # start of IP
@@ -242,10 +373,40 @@ def display_calculated_breath_phases(adc_data):
     plt.show()
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
+    """
+    This function extracts all implemented features from the segment passed 
+    and prints them in "extracted_features.jsonl"
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+    input_file : 
+        name of the file(segment) with features being extracted
+
+    Returns
+    -------
+        None
+    
+    Side Effects
+    ------------
+        This function appends an entry (feature vector) to the extracted_features.jsonl file.
+        If you want to use it make sure to check whether the file should exist and have entries.
+    
+    """
     count_breaths(adc_data)
+    bpm = adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)
+    if bpm < MIN_BPM or bpm > MAX_BPM: #discard criteria
+        print(f"{input_file} discarded for inadequate breath count ({bpm})")
+        return
     avg_breath_depth, avg_breath_depth_std_dev = calculate_average_breath_depth(adc_data)
+
     phases_avg_values = calculate_breathing_phases(adc_data)
-    # display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
+    if phases_avg_values[INHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH or phases_avg_values[EXHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH:
+        print(f"{input_file} discarded for inadequate phase lengths {phases_avg_values}")
+        return
+    if adc_data.debug_plot_enabled:
+        display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
@@ -284,7 +445,7 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     if adc_data.plot_enabled:
         plt.figure(figsize=(8,6))
         plt.title(f"{input_file} breath track")
-        # TODO: substitute numbers with areas of the chest names
+
         plt.plot([1,2,3,4,5], belt_share, "-o", label="belt share in breathing")
         plt.plot([1,2,3,4,5], belt_share_std, "-o", label="belt share std")
         plt.xlabel("belt number")

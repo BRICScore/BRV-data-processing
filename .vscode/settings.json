@@ -3,5 +3,6 @@
         "./data_processing",
         "./utils",
         "./feature_processing"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }
