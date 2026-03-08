@@ -372,6 +372,46 @@ def display_calculated_breath_phases(adc_data):
     plt.ylabel("signal deviation from average value")
     plt.show()
 
+def calculate_respiratory_tract(adc_data):
+    """
+    This function is responsible for extracting the values for
+    representation of the feature in the name using RMS
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    n = len(adc_data.adc_normalized_data[0])
+    rms = np.zeros(shape=ADC_COUNT, dtype=np.float32)
+    for i in range(ADC_COUNT):
+        rms[i] = np.sqrt(np.sum(np.square(adc_data.adc_normalized_data[i]))/n)
+    
+    return rms
+
+def calculate_breath_variability(adc_data):
+    """
+    This function takes breath data and extracts min and max values
+    of peaks and valleys in a sequence and
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    
+    """
+    pass
+
+def calculate_breath_shape(adc_data):
+    """
+    This function interpolates the breath data of every single breath and estabilishes
+    the best coefficients for the polynomial of a single breath
+
+    """
+
 def basic_feature_extraction(adc_data, input_file="test.txt"):
     """
     This function extracts all implemented features from the segment passed 
