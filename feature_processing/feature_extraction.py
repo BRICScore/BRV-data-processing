@@ -379,38 +379,75 @@ def calculate_respiratory_tract(adc_data):
 
     Parameters
     ----------
+    adc_data : ADC_Data
+        Data for current input file
 
     Returns
     -------
+
+    """
+    pass
+
+def calculate_breath_variability(adc_data):
+    """
+    This function is responsible for extracting the values for
+    representation of the feature in the name using RMS (Root Mean Square)
+
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+
+    Returns
+    -------
+    rms : a NDArray with 5 elements representing RMS from each ADC
 
     """
     n = len(adc_data.adc_normalized_data[0])
     rms = np.zeros(shape=ADC_COUNT, dtype=np.float32)
     for i in range(ADC_COUNT):
         rms[i] = np.sqrt(np.sum(np.square(adc_data.adc_normalized_data[i]))/n)
-    
+    print(rms)
     return rms
-
-def calculate_breath_variability(adc_data):
-    """
-    This function takes breath data and extracts min and max values
-    of peaks and valleys in a sequence and
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    
-    """
-    pass
 
 def calculate_breath_shape(adc_data):
     """
     This function interpolates the breath data of every single breath and estabilishes
-    the best coefficients for the polynomial of a single breath
+    the best coefficients for the polynomial of a single breath calculating from
+    all breaths in a segment.
+    
+    Parameters
+    ----------
+    adc_data : ADC_Data
+        Data for current input file
+    
+    Returns
+    -------
+    coefficient_means : NDArray with mean coefficients calculated from all
+        breaths from a segment by approximating a cubic polynomial
 
     """
+    all_coefficients = []
+
+    for i in range(len(adc_data.inhale_points)-1):
+        # print(adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1])
+        start, end = adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1]
+        x = [number for number in range(start,end+1)]
+        x -= np.min(x)
+        y = adc_data.adc_normalized_data[TARGET_ADC][start:end+1]
+        c = np.polyfit(x, y, 3)
+
+        #plt.plot(x,y)
+        domain = np.linspace(x[0], x[-1], 20)
+        print(c)
+        a3, a2, a1, a0 = c
+        y2 = [a3*x2**3 + a2*x2**2 + a1*x2 + a0 for x2 in domain]
+        #plt.scatter(domain, y2)
+        #plt.show()
+        
+        all_coefficients.append(c)
+    coefficient_means = np.mean(np.array(all_coefficients), axis=0) #column-wise mean
+    return coefficient_means
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
     """
@@ -448,6 +485,7 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     if adc_data.debug_plot_enabled:
         display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
+    calculate_breath_shape(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
