@@ -386,7 +386,25 @@ def calculate_respiratory_tract(adc_data):
     -------
 
     """
-    pass
+    # TODO
+    TO_GENERATE = 20
+    x = np.outer(np.ones(TO_GENERATE), np.array([1,2,3,4,5]))
+    y = np.outer(np.linspace(1,20,20), np.ones(ADC_COUNT))
+    print(y)
+    z = []
+    for i in range(ADC_COUNT):
+        coefficients = calculate_breath_shape(adc_data=adc_data, target=i)
+        a3, a2, a1, a0 = coefficients
+        z.append([a3*p**3 + a2*p**2 + a1*p + a0 for p in range(1,20+1)])
+    z = np.array(z).T
+    print(z)
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.plot_surface(x, y, z, cmap='viridis', edgecolor='green')
+    ax.set_title('Surface Plot')
+    ax.view_init(20, -20)
+    plt.show()
 
 def calculate_breath_variability(adc_data):
     """
@@ -410,7 +428,7 @@ def calculate_breath_variability(adc_data):
     print(rms)
     return rms
 
-def calculate_breath_shape(adc_data):
+def calculate_breath_shape(adc_data, target=TARGET_ADC):
     """
     This function interpolates the breath data of every single breath and estabilishes
     the best coefficients for the polynomial of a single breath calculating from
@@ -429,17 +447,18 @@ def calculate_breath_shape(adc_data):
     """
     all_coefficients = []
 
-    for i in range(len(adc_data.inhale_points)-1):
+    for i in range(len(adc_data.inhale_points)):
         # print(adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1])
-        start, end = adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1]
+        # print(len(adc_data.breath_end_point_indices), len(adc_data.inhale_point_indices))
+        start, end = adc_data.inhale_point_indices[i], adc_data.breath_end_point_indices[i]
         x = [number for number in range(start,end+1)]
         x -= np.min(x)
-        y = adc_data.adc_normalized_data[TARGET_ADC][start:end+1]
+        y = adc_data.adc_normalized_data[target][start:end+1]
         c = np.polyfit(x, y, 3)
 
         #plt.plot(x,y)
         domain = np.linspace(x[0], x[-1], 20)
-        print(c)
+        # print(c)
         a3, a2, a1, a0 = c
         y2 = [a3*x2**3 + a2*x2**2 + a1*x2 + a0 for x2 in domain]
         #plt.scatter(domain, y2)
@@ -485,7 +504,9 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     if adc_data.debug_plot_enabled:
         display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
-    calculate_breath_shape(adc_data)
+    # calculate_breath_shape(adc_data)
+    # calculate_breath_variability(adc_data=adc_data)
+    calculate_respiratory_tract(adc_data=adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
