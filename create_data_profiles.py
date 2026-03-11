@@ -90,7 +90,7 @@ def detect_breath_peaks(signal):
 
     return minima, maxima
 
-def get_mode_breath(all_breath_data, mode_values, average_values):
+def get_mode_breaths(all_breath_data, mode_values, average_values):
     """ 
     Identifies the most representative breath (mode breath) from the given breath dataset. The choice
     is based on a weighted distance metric that considers the breath's depth, length and breathing 
@@ -118,7 +118,7 @@ def get_mode_breath(all_breath_data, mode_values, average_values):
     """
 
     mode_dist = float('inf')
-    representative_breath = None
+    breath_distances = np.array([])
 
     weights = {
         'depth': 0.3,
@@ -127,8 +127,8 @@ def get_mode_breath(all_breath_data, mode_values, average_values):
         'exhale': 1.0,
     }
 
-    for breath in all_breath_data:
-        dist = 0
+    for i, breath in enumerate(all_breath_data):
+        dist = 0.0
         dist += weights['depth'] * abs(breath['depth'] - average_values['avg_depth'])
         dist += weights['length'] * abs(breath['length'] - average_values['avg_length'])
         dist += weights['inhale'] * abs(breath['inhale'] - average_values['avg_inhale'])
@@ -140,11 +140,16 @@ def get_mode_breath(all_breath_data, mode_values, average_values):
         # dist += (breath['inspiratory_pause'] - mode_values['mode_inspiratory_pause'])
         # dist += (breath['expiratory_pause'] - mode_values['mode_expiratory_pause'])
 
-        if dist < mode_dist:
-            mode_dist = dist
-            representative_breath = breath
+        breath_distances = np.append(breath_distances, {"index": i, "distance": dist})
 
-    return representative_breath
+    # TODO: rewrite this to np functions, for now I had some strange issues with them so we are using "sorted"
+    sorted_distances = sorted(breath_distances, key=lambda x: x['distance'])
+    
+    representative_breaths = []
+    for i in range(5):
+        representative_breaths.append(all_breath_data[sorted_distances[i]['index']])
+    
+    return representative_breaths[0], representative_breaths
 
 def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak_index, start_idx, end_idx):
     """ 
@@ -405,8 +410,8 @@ def create_data_profiles():
         all_breath_data = calculate_breath_characteristics(people_files[person])
 
         average_values, mode_values = calculate_mode_and_avg_features(all_breath_data)    
-        mode_breath = get_mode_breath(all_breath_data, mode_values, average_values)
-        people_profiles[person] = {"average_values": average_values, "mode_values": mode_values, "mode_breath": mode_breath}
+        mode_breath, mode_breaths = get_mode_breaths(all_breath_data, mode_values, average_values) # mode_breaths are (for now) 5 most representative breaths
+        people_profiles[person] = {"average_values": average_values, "mode_values": mode_values, "mode_breath": mode_breath, "mode_breaths": mode_breaths}
 
     return people_profiles
 
@@ -446,7 +451,8 @@ def plot_mode_breath_on_file(mode_breath):
 def group_plot_mode_breaths(profiles):
     retimed_breaths_for_people = {}
 
-    for person, (avg_values, mode_values, mode_breath) in profiles.items():
+    for person in profiles:
+        mode_breath = profiles[person]["mode_breath"]
         if mode_breath is None:
             continue
 
@@ -556,7 +562,6 @@ def plot_profiles(profiles):
     fig.tight_layout(pad=0.5)
     plt.show()
 
-
 def create_profile_from_features():
     """
     This function creates a dictionary with appropriate mode data in a dictionary.
@@ -608,6 +613,18 @@ def create_profile_from_features():
 
 def main():
     people_profiles = create_data_profiles()
+
+    # plt.figure(figsize=(14, 7))
+    # for person in people_profiles:
+    #     random_color = np.random.rand(3)
+    #     for breath in people_profiles[person]["mode_breaths"]:
+    #         first_timestamp = breath['timestamps'][0]
+    #         temp_timestamps = [t - first_timestamp for t in breath['timestamps']]
+    #         plt.plot(temp_timestamps, breath['signal'], alpha=0.8, color=random_color)
+    # plt.title(f'Mode Breaths')
+    # plt.xlabel('Time (ms)')
+    # plt.ylabel('ADC Voltage')
+    # plt.show()
 
     for person in people_profiles:
         plot_mode_breath_on_file(people_profiles[person]["mode_breath"])
