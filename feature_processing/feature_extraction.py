@@ -468,23 +468,42 @@ def calculate_breath_shape(adc_data, target=TARGET_ADC):
     coefficient_means = np.mean(np.array(all_coefficients), axis=0) #column-wise mean
     return coefficient_means
 
-def display_specgram(adc_data, target=TARGET_ADC):
+def display_specgram(adc_data, target=TARGET_ADC, amplitude_resolution=10):
     """
     """
     segment_data = []
-    min_length = np.min(np.array([adc_data.breath_end_point_indices[i] - adc_data.inhale_point_indices[i] for i in range(len(adc_data.inhale_points))]))
+    lengths = np.array([adc_data.breath_end_point_indices[i] - adc_data.inhale_point_indices[i] for i in range(len(adc_data.inhale_points))])
+    min_length = np.min(lengths)
+    max_length = np.max(lengths)
+    n_of_rows = amplitude_resolution
+    heat_array = np.zeros(shape=(n_of_rows, max_length))
+    #print(heat_array)
+    min_value = np.min(adc_data.adc_normalized_data[target])
+    max_value = np.max(adc_data.adc_normalized_data[target] - min_value)
+
     for i in range(len(adc_data.inhale_points)):
         # print(adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1])
         # print(len(adc_data.breath_end_point_indices), len(adc_data.inhale_point_indices))
         start, end = adc_data.inhale_point_indices[i], adc_data.breath_end_point_indices[i]
-        x = adc_data.adc_normalized_data[target][start:end+1]
-        segment_data.append(x) #[:min_length]
-        plt.specgram(x[:min_length])
+        x = adc_data.adc_normalized_data[target][start:end] - min_value
+        #print(min_value)
+        #print(np.min(x))
+        #print(len(x))
+        for p in range(len(x)):
+            heat_array[int((x[p] / max_value) * 10 if x[p] != max_value else n_of_rows-1)][p] += 1
+
+        #plt.specgram(x)
         #plt.show()
+        segment_data.append(x) #[:min_length]
     # sns.heatmap(segment_data)
     for breath in segment_data:
         plt.scatter([i for i in range(len(breath))], breath)
     plt.show()
+
+    heat_array = np.flip(heat_array, axis=0) # flip rows
+    sns.heatmap(heat_array)
+    plt.show()
+    print(heat_array[0])
         
 
 def basic_feature_extraction(adc_data, input_file="test.txt"):
@@ -526,7 +545,7 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     # calculate_breath_shape(adc_data)
     # calculate_breath_variability(adc_data=adc_data)
     # calculate_respiratory_tract(adc_data=adc_data)
-    display_specgram(adc_data=adc_data)
+    display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15) #TODO
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
