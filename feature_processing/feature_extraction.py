@@ -468,6 +468,25 @@ def calculate_breath_shape(adc_data, target=TARGET_ADC):
     coefficient_means = np.mean(np.array(all_coefficients), axis=0) #column-wise mean
     return coefficient_means
 
+def display_specgram(adc_data, target=TARGET_ADC):
+    """
+    """
+    segment_data = []
+    min_length = np.min(np.array([adc_data.breath_end_point_indices[i] - adc_data.inhale_point_indices[i] for i in range(len(adc_data.inhale_points))]))
+    for i in range(len(adc_data.inhale_points)):
+        # print(adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1])
+        # print(len(adc_data.breath_end_point_indices), len(adc_data.inhale_point_indices))
+        start, end = adc_data.inhale_point_indices[i], adc_data.breath_end_point_indices[i]
+        x = adc_data.adc_normalized_data[target][start:end+1]
+        segment_data.append(x) #[:min_length]
+        plt.specgram(x[:min_length])
+        #plt.show()
+    # sns.heatmap(segment_data)
+    for breath in segment_data:
+        plt.scatter([i for i in range(len(breath))], breath)
+    plt.show()
+        
+
 def basic_feature_extraction(adc_data, input_file="test.txt"):
     """
     This function extracts all implemented features from the segment passed 
@@ -506,7 +525,8 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     # calculate_breath_shape(adc_data)
     # calculate_breath_variability(adc_data=adc_data)
-    calculate_respiratory_tract(adc_data=adc_data)
+    # calculate_respiratory_tract(adc_data=adc_data)
+    display_specgram(adc_data=adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
