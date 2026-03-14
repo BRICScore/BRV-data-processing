@@ -289,6 +289,10 @@ def detect_inhale(adc_data):
         and adc_data.inhale_point_indices
     
     """
+    signal = adc_data.adc_normalized_data[TARGET_ADC]
+    std_dev_signal = np.std(signal)
+    mean_signal = np.mean(signal)
+    min_value_for_peak = mean_signal + std_dev_signal*STD_DEV_CONST
 
     adc_data.inhale_point_indices = []
     adc_data.inhale_points = []
@@ -299,12 +303,18 @@ def detect_inhale(adc_data):
             val_current = adc_data.adc_normalized_data[TARGET_ADC][inhale_point]
             val_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1]
             val_before_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-2]
+            # if val_current < val_prev < val_before_prev and val_prev > min_value_for_peak: #TODO
+            #     inhale_point -= 1
+            #     break
             if val_current > val_prev:
                 if val_prev > val_before_prev:
                     inhale_point -= 1
                 else:
-                    pointFound = True
-                    inhale_point -= 1
+                    if adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1] < min_value_for_peak: #TODO
+                        inhale_point -= 1
+                        pointFound = True
+                    else:
+                        inhale_point -= 1
             else:
                 inhale_point -= 1
             if inhale_point <= 0 or inhale_point == len(adc_data.timestamps)-1:
@@ -346,10 +356,6 @@ def calculate_breathing_phases(adc_data):
         phases_values[2] += NPtimestamps[adc_data.breath_minimum_indices[i]] - NPtimestamps[adc_data.exhale_point_indices[i]]
         phases_values[3] += NPtimestamps[adc_data.breath_end_point_indices[i]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
         # until outliers are not dealt with
-        """
-        if i != number_of_breaths-1:
-            phases_values[3] += NPtimestamps[adc_data.inhale_point_indices[i+1]] - NPtimestamps[adc_data.breath_minimum_indices[i]]
-        """
     try:
         phases_values[0] /= number_of_breaths
         phases_values[1] /= number_of_breaths
@@ -367,7 +373,7 @@ def display_calculated_breath_phases(adc_data):
     plt.scatter(NPtimestamps[adc_data.exhale_point_indices], adc_data.exhale_points, c="green") # start of exhale
     plt.scatter(NPtimestamps[adc_data.breath_minimum_indices], adc_data.breath_minima, c="magenta") # start of EP
     plt.scatter(NPtimestamps[adc_data.breath_end_point_indices], adc_data.breath_end_points, c="yellow") # end of EP
-    plt.legend(["signal","inhale start", "IP start", "exhale start", "EP start"])
+    plt.legend(["signal","inhale start", "IP start", "exhale start", "EP start", "breath end"])
     plt.xlabel("timestamp [ms]")
     plt.ylabel("signal deviation from average value")
     plt.show()
@@ -387,8 +393,8 @@ def calculate_respiratory_tract(adc_data):
 
     """
     # TODO
-    TO_GENERATE = 20
-    x = np.outer(np.ones(TO_GENERATE), np.array([1,2,3,4,5]))
+    to_gen = 20
+    x = np.outer(np.ones(to_gen), np.array([1,2,3,4,5]))
     y = np.outer(np.linspace(1,20,20), np.ones(ADC_COUNT))
     print(y)
     z = []
@@ -406,11 +412,11 @@ def calculate_respiratory_tract(adc_data):
     ax.view_init(20, -20)
     plt.show()
 
-def calculate_breath_variability(adc_data):
+def calculate_breath_length_variability(adc_data):
     """
-    This function is responsible for extracting the values for
-    representation of the feature in the name using RMS (Root Mean Square)
-
+    The extent of variability between successive breaths was calculated as the
+    root mean square of successive differences (RMSSD) over consecutive breaths (short-term variability, Eq. 2).
+    A quantitative time series analysis shows the overall degree of variability or “quantitative variability”.
     Parameters
     ----------
     adc_data : ADC_Data
@@ -418,15 +424,41 @@ def calculate_breath_variability(adc_data):
 
     Returns
     -------
-    rms : a NDArray with 5 elements representing RMS from each ADC
+    rmssd : a float value representing the RMSSD of breath lengths (length variability)
 
     """
-    n = len(adc_data.adc_normalized_data[0])
-    rms = np.zeros(shape=ADC_COUNT, dtype=np.float32)
-    for i in range(ADC_COUNT):
-        rms[i] = np.sqrt(np.sum(np.square(adc_data.adc_normalized_data[i]))/n)
-    print(rms)
-    return rms
+    NPtimestamps = np.array(adc_data.timestamps)
+    number_of_breaths = len(adc_data.breath_peaks)
+    length_values = np.zeros(shape=number_of_breaths)
+
+    for i in range(number_of_breaths):
+        length_values[i] += NPtimestamps[adc_data.breath_end_point_indices[i]] - NPtimestamps[adc_data.inhale_point_indices[i]]
+
+    N = number_of_breaths
+    subsequent_difference_sum = 0.0
+    for i in range(1, N):
+        subsequent_difference_sum += (length_values[i-1] - length_values[i])**2
+    rmssd = np.sqrt(subsequent_difference_sum/N)
+
+    return rmssd
+
+def calculate_breath_amplitude_variability(adc_data):
+    """
+    This function calculates variability by the measure of
+    coefficient of variation (CV) which is standard deviation divided by mean
+
+    Parameters
+    ----------
+    adc_data : ADC_Data
+
+    Returns
+    -------
+    cv : float cv value for the list of all amplitudes (peaks) of the segment
+
+    """
+    amplitude_peaks = adc_data.breath_peaks
+    cv = np.std(amplitude_peaks)/np.mean(amplitude_peaks)
+    return cv
 
 def calculate_breath_shape(adc_data, target=TARGET_ADC):
     """
@@ -482,20 +514,13 @@ def display_specgram(adc_data, target=TARGET_ADC, amplitude_resolution=10):
     max_value = np.max(adc_data.adc_normalized_data[target] - min_value)
 
     for i in range(len(adc_data.inhale_points)):
-        # print(adc_data.inhale_point_indices[i], adc_data.inhale_point_indices[i+1])
-        # print(len(adc_data.breath_end_point_indices), len(adc_data.inhale_point_indices))
         start, end = adc_data.inhale_point_indices[i], adc_data.breath_end_point_indices[i]
         x = adc_data.adc_normalized_data[target][start:end] - min_value
-        #print(min_value)
-        #print(np.min(x))
-        #print(len(x))
+
         for p in range(len(x)):
             heat_array[int((x[p] / max_value) * 10 if x[p] != max_value else n_of_rows-1)][p] += 1
 
-        #plt.specgram(x)
-        #plt.show()
-        segment_data.append(x) #[:min_length]
-    # sns.heatmap(segment_data)
+        segment_data.append(x)
     for breath in segment_data:
         plt.scatter([i for i in range(len(breath))], breath)
     plt.show()
@@ -541,11 +566,12 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
         return
     if adc_data.debug_plot_enabled:
         display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
-    belt_share, belt_share_std = calculate_breathing_tract(adc_data)
-    # calculate_breath_shape(adc_data)
-    # calculate_breath_variability(adc_data=adc_data)
+    c = calculate_breath_shape(adc_data)
+    blv = calculate_breath_length_variability(adc_data=adc_data)
+    bav = calculate_breath_amplitude_variability(adc_data=adc_data)
     # calculate_respiratory_tract(adc_data=adc_data)
-    display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15) #TODO
+    # display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
+    belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
