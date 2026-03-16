@@ -392,23 +392,26 @@ def calculate_respiratory_tract(adc_data):
     -------
 
     """
-    # TODO
-    to_gen = 20
+
+    to_gen = 60
     x = np.outer(np.ones(to_gen), np.array([1,2,3,4,5]))
-    y = np.outer(np.linspace(1,20,20), np.ones(ADC_COUNT))
-    print(y)
+    y = np.outer(np.linspace(1,to_gen,to_gen), np.ones(ADC_COUNT))
+    # print(y)
     z = []
     for i in range(ADC_COUNT):
         coefficients = calculate_breath_shape(adc_data=adc_data, target=i)
         a3, a2, a1, a0 = coefficients
-        z.append([a3*p**3 + a2*p**2 + a1*p + a0 for p in range(1,20+1)])
+        z.append([a3*p**3 + a2*p**2 + a1*p + a0 for p in range(1,to_gen+1)])
     z = np.array(z).T
-    print(z)
+    # print(z)
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     ax.plot_surface(x, y, z, cmap='viridis', edgecolor='green')
     ax.set_title('Surface Plot')
+    ax.set_xlabel("Nr pasa")
+    ax.set_ylabel("Nr próbki")
+    ax.set_zlabel("Głębokość oddechu")
     ax.view_init(20, -20)
     plt.show()
 
@@ -569,8 +572,8 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
     c = calculate_breath_shape(adc_data)
     blv = calculate_breath_length_variability(adc_data=adc_data)
     bav = calculate_breath_amplitude_variability(adc_data=adc_data)
-    # calculate_respiratory_tract(adc_data=adc_data)
-    # display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
+    calculate_respiratory_tract(adc_data=adc_data)
+    display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
