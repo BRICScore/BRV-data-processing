@@ -4,6 +4,7 @@ from outlier_detection import *
 from data_containers.ADC_data import ADCdata
 from config import *
 
+
 def u2_to_i(b1, b2, b3):
     """
         Convert three 8-bit values into a single signed 24-bit integer.

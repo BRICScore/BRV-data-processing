@@ -10,6 +10,7 @@ import math
 import os
 import pathlib
 from matplotlib import patches
+import seaborn as sns
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
