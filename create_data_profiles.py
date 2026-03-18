@@ -461,7 +461,7 @@ def group_plot_mode_breaths(profiles):
     retimed_breaths_for_people = {}
 
     for person in profiles:
-        mode_breath = profiles[person]["mode_breath"]
+        mode_breath = profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]
         if mode_breath is None:
             continue
 
@@ -622,8 +622,8 @@ def create_profile_from_features(plot_enabled=False):
 
 def generate_breathing_signals(profiles):
     for person in profiles:
-        breath_length_time = profiles[person]["mode_breath"]["timestamps"][-1] - profiles[person]["mode_breath"]["timestamps"][0]
-        mode_breaths_weights = profiles[person]["mode_breaths_weights"]
+        breath_length_time = profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]["timestamps"][-1] - profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]["timestamps"][0]
+        mode_breaths_weights = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths_weights"]
 
         breaths_per_set_time = math.floor(NUMBER_OF_SIM_MINUTES*60*1000 / breath_length_time)
         generated_signal = []
@@ -632,19 +632,19 @@ def generate_breathing_signals(profiles):
         last_signal_height = None
         for _ in range(breaths_per_set_time):
             rand_breath = random.choices(list(range(NUMBER_OF_MODE_BREATHS)), weights=mode_breaths_weights)[0]
-            first_signal_height = profiles[person]["mode_breaths"][rand_breath]["signal"][0] 
+            first_signal_height = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"][0] 
             if last_signal_height is None:
                 signal_height_offset = 0
             else:
                 signal_height_offset = last_signal_height - first_signal_height
             
-            aligned_signal = [s + signal_height_offset for s in profiles[person]["mode_breaths"][rand_breath]["signal"]]
+            aligned_signal = [s + signal_height_offset for s in profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"]]
 
-            generated_timestamps += [t - profiles[person]["mode_breaths"][rand_breath]["timestamps"][0] + total_time for t in profiles[person]["mode_breaths"][rand_breath]["timestamps"]]
-            total_time += profiles[person]["mode_breaths"][rand_breath]["timestamps"][-1] - profiles[person]["mode_breaths"][rand_breath]["timestamps"][0]
+            generated_timestamps += [t - profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][0] + total_time for t in profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"]]
+            total_time += profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][-1] - profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][0]
             generated_signal += aligned_signal
 
-            last_signal_height = profiles[person]["mode_breaths"][rand_breath]["signal"][-1]
+            last_signal_height = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"][-1]
 
         plt.figure(figsize=(14, 7))
         plt.plot(generated_timestamps, generated_signal, label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.8)
