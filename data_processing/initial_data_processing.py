@@ -1,8 +1,9 @@
 from breath_separation import *
 from outlier_detection import *
 
-from ADC_data import ADCdata
+from data_containers.ADC_data import ADCdata
 from config import *
+
 
 def u2_to_i(b1, b2, b3):
     """
