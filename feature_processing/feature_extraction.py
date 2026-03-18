@@ -531,8 +531,18 @@ def display_specgram(adc_data, target=TARGET_ADC, amplitude_resolution=10):
     plt.show()
     print(heat_array[0])
         
+def write_features_to_file(features, input_file="temp.jsonl"):
+    with open(f"./features/extracted_features.jsonl", 'a') as o_f:
+        o_f.write("{")
 
-def basic_feature_extraction(adc_data, input_file="test.txt"):
+        for key in features:
+            o_f.write(f"\"{key}\": {list(features[key]) if type(features[key]) == np.ndarray else features[key]}")
+            o_f.write(", ")
+        temp_feature_name = input_file.split("_")
+        o_f.write(f"\"person\": \"{temp_feature_name[PERSON_ID]}_{temp_feature_name[ACTIVITY_ID]}\"")
+        o_f.write("}\n")
+
+def basic_feature_extraction(adc_data, input_file="temp.jsonl"):
     """
     This function extracts all implemented features from the segment passed 
     and prints them in "extracted_features.jsonl"
@@ -554,64 +564,40 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
         If you want to use it make sure to check whether the file should exist and have entries.
     
     """
+    features = {}
     count_breaths(adc_data)
     bpm = adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)
+    features["bpm"] = bpm
     if bpm < MIN_BPM or bpm > MAX_BPM: #discard criteria
         print(f"{input_file} discarded for inadequate breath count ({bpm})")
         return
     avg_breath_depth, avg_breath_depth_std_dev = calculate_average_breath_depth(adc_data)
-
-    phases_avg_values = calculate_breathing_phases(adc_data)
+    features["avg_breath_depth"] = avg_breath_depth
+    features["avg_breath_depth_std_dev"] = avg_breath_depth_std_dev
+    phases_avg_values = [float(x) for x in calculate_breathing_phases(adc_data)]
+    features["phases_avg_values"] = phases_avg_values
     if phases_avg_values[INHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH or phases_avg_values[EXHALE_INDEX] < MIN_INHALE_OR_EXHALE_LENGTH:
         print(f"{input_file} discarded for inadequate phase lengths {phases_avg_values}")
         return
     if adc_data.debug_plot_enabled:
         display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
-    c = calculate_breath_shape(adc_data)
+    c = [float(x) for x in calculate_breath_shape(adc_data)]
+    features["breath_shape"] = c
     blv = calculate_breath_length_variability(adc_data=adc_data)
+    features["breath_length_variability"] = blv
     bav = calculate_breath_amplitude_variability(adc_data=adc_data)
-    calculate_respiratory_tract(adc_data=adc_data)
-    display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
+    features["breath_amplitude_variability"] = bav
+    # calculate_respiratory_tract(adc_data=adc_data)
+    # display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
     belt_share, belt_share_std = calculate_breathing_tract(adc_data)
+    features["belt_share"] = [float(x) for x in belt_share]
+    features["belt_share_std"] = [float(x) for x in belt_share_std]
     #-----------------------------------------------------------------------------------
     # nazewnictwo: feature_time_person_conditions(sit,lay,run)_(nr_próbki)_(nr_segmentu)
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if adc_data.plot_enabled:
         plot_data(input_file, adc_data, avg_breath_depth)
-    with open(f"./features/extracted_features.jsonl", 'a') as o_f:
-        o_f.write(f"{"{"}\"bpm\": {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)}, ")
-        o_f.write(f"\"breath_depth\": {avg_breath_depth}, ")
-        o_f.write(f"\"breath_depth_std\": {avg_breath_depth_std_dev*2}, ")
-        o_f.write(f"\"belt_share\": [")
-        for i in range(len(belt_share)):
-            o_f.write(f"{belt_share[i]}")
-            if i != len(belt_share)-1:
-                o_f.write(", ")
-        o_f.write("], ")
-        o_f.write(f"\"belt_share_std\": [")
-        for i in range(len(belt_share_std)):
-            o_f.write(f"{belt_share_std[i]}")
-            if i != len(belt_share_std)-1:
-                o_f.write(", ")
-        o_f.write("], ")
-        o_f.write(f"\"breathing_phase_lengths\": [")
-        for i in range(len(phases_avg_values)):
-            o_f.write(f"{phases_avg_values[i]}")
-            if i != len(phases_avg_values)-1:
-                o_f.write(", ")
-        o_f.write("], ")
-        o_f.write(f"\"breath_shape\": [")
-        for i in range(len(c)):
-            o_f.write(f"{c[i]}")
-            if i != len(c)-1:
-                o_f.write(", ")
-        o_f.write("], ")
-        temp_feature_name = input_file.split("_")
-        o_f.write(f"\"person\": \"{temp_feature_name[PERSON_ID]}_{temp_feature_name[ACTIVITY_ID]}\"")
-        o_f.write("}\n")
-    print(f"breath count for {input_file}: {adc_data.breath_count} for {adc_data.timestamps[-1] - adc_data.timestamps[0]}ms -> {adc_data.breath_count/((adc_data.timestamps[-1] - adc_data.timestamps[0])/60_000)} bpm")
-    print(f"breath depth: {avg_breath_depth}")
-    print(f"breath depth std: {avg_breath_depth_std_dev*2}")
+    write_features_to_file(features=features, input_file=input_file)
 
     if adc_data.plot_enabled:
         plt.figure(figsize=(8,6))
