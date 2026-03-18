@@ -190,7 +190,7 @@ def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak
 
     return phases
 
-def extract_breath_data_from_file(file):
+def extract_breath_data_from_file(file, target_adc=TARGET_ADC):
     """
     Extracts minima and maxima indices from a given file (from the ./results directory)
     as well as the corresponding timestamps and ADC signals.
@@ -225,10 +225,10 @@ def extract_breath_data_from_file(file):
             timestamps.append(timestamp)
             for i in range(5):
                 adc_signals[i].append(adc_values[i])
-    minima, maxima = detect_breath_peaks(adc_signals[TARGET_ADC])
+    minima, maxima = detect_breath_peaks(adc_signals[target_adc])
     return { "minima": minima, "maxima": maxima, "timestamps": timestamps, "adc_signals": adc_signals }
 
-def calculate_breath_characteristics(people_files):
+def calculate_breath_characteristics(people_files, target_adc=TARGET_ADC):
     """
     Calculates breath characteristics (depth, length, inhale duration, exhale duration) for each breath in the given files.
 
@@ -250,7 +250,7 @@ def calculate_breath_characteristics(people_files):
 
     all_breath_data = []
     for file in people_files:
-        file_breath_data = extract_breath_data_from_file(file)
+        file_breath_data = extract_breath_data_from_file(file, target_adc)
         minima = file_breath_data["minima"]
         maxima = file_breath_data["maxima"]
         timestamps = file_breath_data["timestamps"]
@@ -260,7 +260,7 @@ def calculate_breath_characteristics(people_files):
         for i in range(len(minima)-1):
             start_idx = minima[i]
             end_idx = minima[i+1]
-            breath_signal = adc_signals[TARGET_ADC][start_idx:end_idx]
+            breath_signal = adc_signals[target_adc][start_idx:end_idx]
             breath_timestamps = timestamps[start_idx:end_idx]
             if len(breath_signal) == 0:
                 continue
@@ -281,7 +281,7 @@ def calculate_breath_characteristics(people_files):
             peak_in_breath = np.max(peaks_in_breath) if peaks_in_breath else None
 
             if peak_in_breath is not None:
-                phases = calculate_breathing_phases_for_breath(adc_signals[TARGET_ADC], timestamps, peak_in_breath, start_idx, end_idx)
+                phases = calculate_breathing_phases_for_breath(adc_signals[target_adc], timestamps, peak_in_breath, start_idx, end_idx)
                 breath_features['inhale'] = phases[0]
                 breath_features['inspiratory_pause'] = phases[1]
                 breath_features['exhale'] = phases[2]
@@ -408,15 +408,23 @@ def create_data_profiles():
         people_files[person].append(file)
 
     for person in people_files:
-        all_breath_data = calculate_breath_characteristics(people_files[person])
+        people_profiles[person] = {}
+        for target_adc in range(ADC_COUNT):
+            all_breath_data = calculate_breath_characteristics(people_files[person], target_adc)
 
-        avg_values, mode_values = calculate_mode_and_avg_features(all_breath_data)    
-        mode_breath, mode_breaths, mode_breaths_weights = get_mode_breaths(all_breath_data, mode_values, avg_values) # mode_breaths are (for now) 5 most representative breaths
-        people_profiles[person] = {"avg_values": avg_values, "mode_values": mode_values, "mode_breath": mode_breath, "mode_breaths": mode_breaths, "mode_breaths_weights": mode_breaths_weights }
+            avg_values, mode_values = calculate_mode_and_avg_features(all_breath_data)    
+            mode_breath, mode_breaths, mode_breaths_weights = get_mode_breaths(all_breath_data, mode_values, avg_values) # mode_breaths are (for now) 5 most representative breaths
+            people_profiles[person][f"adc_{target_adc}"] = {
+                "avg_values": avg_values,
+                "mode_values": mode_values,
+                "mode_breath": mode_breath, 
+                "mode_breaths": mode_breaths, 
+                "mode_breaths_weights": mode_breaths_weights 
+            }
 
     return people_profiles
 
-def plot_mode_breath_on_file(mode_breath):
+def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
     file_name = mode_breath['file_name']
     file_path = f'./results/{file_name}'
     
@@ -438,7 +446,7 @@ def plot_mode_breath_on_file(mode_breath):
     mode_signal = mode_breath['signal']
 
     plt.figure(figsize=(14, 7))
-    plt.plot(timestamps, adc_signals[TARGET_ADC], label='Full Signal', color='blue', linewidth=1)
+    plt.plot(timestamps, adc_signals[target_adc], label='Full Signal', color='blue', linewidth=1)
     plt.plot(mode_timestamps, mode_signal, label='Mode Breath', color='red', linewidth=2.5, alpha=0.8)
     plt.title(f'Mode Breath Highlighted on File: {file_name}')
     plt.xlabel('Time (ms)')
@@ -644,8 +652,7 @@ def generate_breathing_signals(profiles):
         plt.show()
         
         # break
-
-        
+       
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
 
@@ -665,13 +672,15 @@ def main():
     args = parser.parse_args()
     plot_enabled = args.plot
     gen_enabled = args.gen
+
     people_profiles = create_data_profiles()
+    print(people_profiles)
 
     if plot_enabled:
         for person in people_profiles:
             plt.figure(figsize=(14, 7))
             random_color = np.random.rand(3)
-            for breath in people_profiles[person]["mode_breaths"]:
+            for breath in people_profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"]:
                 first_timestamp = breath['timestamps'][0]
                 temp_timestamps = [t - first_timestamp for t in breath['timestamps']]
                 plt.plot(temp_timestamps, breath['signal'], alpha=0.8, color=random_color)
@@ -681,7 +690,7 @@ def main():
             plt.show()
 
         for person in people_profiles:
-            plot_mode_breath_on_file(people_profiles[person]["mode_breath"])
+            plot_mode_breath_on_file(people_profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"], TARGET_ADC)
         group_plot_mode_breaths(people_profiles)
 
     if gen_enabled:
