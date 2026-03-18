@@ -303,14 +303,12 @@ def detect_inhale(adc_data):
             val_current = adc_data.adc_normalized_data[TARGET_ADC][inhale_point]
             val_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1]
             val_before_prev = adc_data.adc_normalized_data[TARGET_ADC][inhale_point-2]
-            # if val_current < val_prev < val_before_prev and val_prev > min_value_for_peak: #TODO
-            #     inhale_point -= 1
-            #     break
+            
             if val_current > val_prev:
                 if val_prev > val_before_prev:
                     inhale_point -= 1
                 else:
-                    if adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1] < min_value_for_peak: #TODO
+                    if adc_data.adc_normalized_data[TARGET_ADC][inhale_point-1] < min_value_for_peak:
                         inhale_point -= 1
                         pointFound = True
                     else:
@@ -600,6 +598,12 @@ def basic_feature_extraction(adc_data, input_file="test.txt"):
         for i in range(len(phases_avg_values)):
             o_f.write(f"{phases_avg_values[i]}")
             if i != len(phases_avg_values)-1:
+                o_f.write(", ")
+        o_f.write("], ")
+        o_f.write(f"\"breath_shape\": [")
+        for i in range(len(c)):
+            o_f.write(f"{c[i]}")
+            if i != len(c)-1:
                 o_f.write(", ")
         o_f.write("], ")
         temp_feature_name = input_file.split("_")
