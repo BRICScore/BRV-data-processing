@@ -1,11 +1,8 @@
 import argparse
 import sys
-import dotenv
 sys.path.append("data_processing")
 sys.path.append("feature_processing")
 sys.path.append("utils")
-
-dotenv.load_dotenv(".env")
 
 from initial_data_processing import process_file
 from config import *
