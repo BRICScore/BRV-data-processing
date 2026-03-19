@@ -697,33 +697,34 @@ def generate_breathing_signals(profiles):
         # plt.figure(figsize=(14, 7))
         # for adc in range(ADC_COUNT):
         #     plt.plot(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
-            # plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+        #     plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
         # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha = 0.5, color="red")
         # plt.title(f"generated breathing signal - {person}")
 
-        # TODO: Ask Jakub about the interp_margin - when smooth is too smooth
         # Smoothing out the connections between breaths
         interp_margin = 5
         breath_connect_points = breath_connect_points[:-1]
         for adc in range(ADC_COUNT):
-            for i in range(len(breath_connect_points)-1):
+            for i in range(len(breath_connect_points)):
                 start_idx = breath_connect_points[i] - interp_margin
                 end_idx = breath_connect_points[i] + interp_margin
                 if end_idx >= len(generated_timestamps):
                     end_idx = len(generated_timestamps) - 1
-                x = [generated_timestamps[start_idx], generated_timestamps[end_idx]]
-                y = [generated_signal[adc][start_idx], generated_signal[adc][end_idx]]
-                f = spi.interp1d(x, y)
+                x = generated_timestamps[start_idx:end_idx]
+                y = generated_signal[adc][start_idx:end_idx]
+                f = spi.make_splrep(x, y, k=3, s=10)
                 for j in range(start_idx, end_idx):
                     generated_signal[adc][j] = f(generated_timestamps[j])
 
         plt.figure(figsize=(14, 7))
         for adc in range(ADC_COUNT):
             plt.plot(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
-            # plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+            plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
         # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.5, color="blue")
-        plt.title(f"interpolacja - {person}")
+        plt.title(f"breathing signal gen - {person}")
         plt.show()
+
+        # break
        
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
