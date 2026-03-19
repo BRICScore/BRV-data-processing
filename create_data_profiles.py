@@ -90,8 +90,9 @@ def detect_breath_peaks(signal):
 
     return minima, maxima
 
-def get_mode_breaths(all_breath_data, mode_values, avg_values):
+def get_mode_breaths(all_breath_data, mode_values, avg_values, people_files):
     """ 
+    TODO
     Identifies the most representative breath (mode breath) from the given breath dataset. The choice
     is based on a weighted distance metric that considers the breath's depth, length and breathing 
     phases' durations (inhale and exhale, the inspiratory and expiratory pauses have been excluded).
@@ -143,14 +144,46 @@ def get_mode_breaths(all_breath_data, mode_values, avg_values):
 
     # TODO: rewrite this to np functions, for now I had some strange issues with them so we are using "sorted"
     sorted_distances = sorted(breath_distances, key=lambda x: x['distance'])
-    
-    representative_breaths = []
-    representative_breaths_weights = []
-    for i in range(NUMBER_OF_MODE_BREATHS):
-        representative_breaths.append(all_breath_data[sorted_distances[i]['index']])
-        representative_breaths_weights.append(NUMBER_OF_MODE_BREATHS - i)
-    # print(representative_breaths_weights)
-    return representative_breaths[0], representative_breaths, representative_breaths_weights
+    selected_count = min(NUMBER_OF_MODE_BREATHS, len(sorted_distances))
+    selected_breaths = [all_breath_data[sorted_distances[i]['index']] for i in range(selected_count)]
+    representative_breaths_weights = [selected_count - i for i in range(selected_count)]
+
+    file_cache = {}
+    for file in people_files:
+        file_cache[file] = extract_breath_data_from_file(file)
+
+    mode_breaths = [[] for _ in range(ADC_COUNT)]
+    for breath in selected_breaths:
+        file_name = breath["file_name"]
+        start_idx = breath["start_idx"]
+        end_idx = breath["end_idx"]
+
+        file_data = file_cache[file_name]
+        timestamps = file_data["timestamps"][start_idx:end_idx]
+        adc_signals = file_data["adc_signals"]
+        for adc in range(ADC_COUNT):
+            signal = adc_signals[adc][start_idx:end_idx]
+
+            adc_breath = {
+                "file_name": file_name,
+                "start_idx": start_idx,
+                "end_idx": end_idx,
+                "adc": adc,
+                "signal": signal,
+                "timestamps": timestamps,
+            }
+
+            if adc == TARGET_ADC:
+                adc_breath["inhale"] = breath["inhale"]
+                adc_breath["inspiratory_pause"] = breath["inspiratory_pause"]
+                adc_breath["exhale"] = breath["exhale"]
+                adc_breath["expiratory_pause"] = breath["expiratory_pause"]
+
+            mode_breaths[adc].append(adc_breath)
+
+    return mode_breaths, representative_breaths_weights
+
+    # return representative_breaths_target_adc, representative_breaths_weights
 
 def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak_index, start_idx, end_idx):
     """ 
@@ -190,7 +223,7 @@ def calculate_breathing_phases_for_breath(breath_signal, breath_timestamps, peak
 
     return phases
 
-def extract_breath_data_from_file(file, target_adc=TARGET_ADC):
+def extract_breath_data_from_file(file):
     """
     Extracts minima and maxima indices from a given file (from the ./results directory)
     as well as the corresponding timestamps and ADC signals.
@@ -217,19 +250,20 @@ def extract_breath_data_from_file(file, target_adc=TARGET_ADC):
     with open (f'./results/{file}', 'r') as f:
         file_lines = f.read().strip().split("\n")
     timestamps = []
-    adc_signals = [[] for _ in range(5)]
+    adc_signals = [[] for _ in range(ADC_COUNT)]
 
     for line in file_lines:
         if line:
             timestamp, adc_values = parse_jsonl_line(line)
             timestamps.append(timestamp)
-            for i in range(5):
+            for i in range(ADC_COUNT):
                 adc_signals[i].append(adc_values[i])
-    minima, maxima = detect_breath_peaks(adc_signals[target_adc])
+    minima, maxima = detect_breath_peaks(adc_signals[TARGET_ADC])
     return { "minima": minima, "maxima": maxima, "timestamps": timestamps, "adc_signals": adc_signals }
 
-def calculate_breath_characteristics(people_files, target_adc=TARGET_ADC):
+def calculate_breath_characteristics(people_files):
     """
+    TODO
     Calculates breath characteristics (depth, length, inhale duration, exhale duration) for each breath in the given files.
 
     Parameters
@@ -250,23 +284,24 @@ def calculate_breath_characteristics(people_files, target_adc=TARGET_ADC):
 
     all_breath_data = []
     for file in people_files:
-        file_breath_data = extract_breath_data_from_file(file, target_adc)
+        file_breath_data = extract_breath_data_from_file(file)
         minima = file_breath_data["minima"]
         maxima = file_breath_data["maxima"]
         timestamps = file_breath_data["timestamps"]
         adc_signals = file_breath_data["adc_signals"]
 
-        breath_features = {}
         for i in range(len(minima)-1):
             start_idx = minima[i]
             end_idx = minima[i+1]
-            breath_signal = adc_signals[target_adc][start_idx:end_idx]
+            breath_signal = adc_signals[TARGET_ADC][start_idx:end_idx]
             breath_timestamps = timestamps[start_idx:end_idx]
             if len(breath_signal) == 0:
                 continue
 
             breath_features = extract_breath_features(breath_signal)
             breath_features['file_name'] = file
+            breath_features['start_idx'] = start_idx
+            breath_features['end_idx'] = end_idx
             breath_features['signal'] = breath_signal
             breath_features['timestamps'] = breath_timestamps
 
@@ -281,7 +316,7 @@ def calculate_breath_characteristics(people_files, target_adc=TARGET_ADC):
             peak_in_breath = np.max(peaks_in_breath) if peaks_in_breath else None
 
             if peak_in_breath is not None:
-                phases = calculate_breathing_phases_for_breath(adc_signals[target_adc], timestamps, peak_in_breath, start_idx, end_idx)
+                phases = calculate_breathing_phases_for_breath(adc_signals[TARGET_ADC], timestamps, peak_in_breath, start_idx, end_idx)
                 breath_features['inhale'] = phases[0]
                 breath_features['inspiratory_pause'] = phases[1]
                 breath_features['exhale'] = phases[2]
@@ -332,6 +367,7 @@ def get_mode_param(all_breath_data, param):
 
 def calculate_mode_and_avg_features(all_breath_data):
     """
+    TODO
     Calculates the average and mode values for breath characteristics (depth, length, inhale duration,
     exhale duration) from the breath dataset.
 
@@ -376,6 +412,7 @@ def calculate_mode_and_avg_features(all_breath_data):
 
 def create_data_profiles():
     """
+    TODO
     Creates data profiles for each person in the analyzed dataset (./results) by processing their respective files
     and calculating a set of characteristics.
 
@@ -409,22 +446,27 @@ def create_data_profiles():
 
     for person in people_files:
         people_profiles[person] = {}
-        for target_adc in range(ADC_COUNT):
-            all_breath_data = calculate_breath_characteristics(people_files[person], target_adc)
 
-            avg_values, mode_values = calculate_mode_and_avg_features(all_breath_data)    
-            mode_breath, mode_breaths, mode_breaths_weights = get_mode_breaths(all_breath_data, mode_values, avg_values) # mode_breaths are (for now) 5 most representative breaths
-            people_profiles[person][f"adc_{target_adc}"] = {
-                "avg_values": avg_values,
-                "mode_values": mode_values,
-                "mode_breath": mode_breath, 
-                "mode_breaths": mode_breaths, 
-                "mode_breaths_weights": mode_breaths_weights 
-            }
+        ### - to się dzieje tylko dla TARGET_ADC
+        target_adc_all_breath_data = calculate_breath_characteristics(people_files[person])
+        avg_values, mode_values = calculate_mode_and_avg_features(target_adc_all_breath_data)   
+        ###
 
+        mode_breaths, mode_breaths_weights = get_mode_breaths(target_adc_all_breath_data, mode_values, avg_values, people_files[person])
+
+        people_profiles[person] = {
+            "avg_values": avg_values,
+            "mode_values": mode_values,
+            "mode_breaths_weights": mode_breaths_weights,
+            "mode_breaths": mode_breaths
+        }
+    
     return people_profiles
 
 def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
+    """
+    TODO
+    """
     file_name = mode_breath['file_name']
     file_path = f'./results/{file_name}'
     
@@ -457,13 +499,18 @@ def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
     plt.savefig(f'./results/mode_breath_{file_name.replace(".jsonl", ".png")}')
     plt.show()
 
-def group_plot_mode_breaths(profiles):
+def group_plot_mode_breaths(people_profiles):
+    """
+    TODO
+    """
     retimed_breaths_for_people = {}
 
-    for person in profiles:
-        mode_breath = profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]
-        if mode_breath is None:
+    for person in people_profiles:
+        mode_breaths_target_adc = people_profiles[person]["mode_breaths"][TARGET_ADC]
+        if mode_breaths_target_adc is None:
             continue
+
+        mode_breath = mode_breaths_target_adc[0]
 
         signal = mode_breath['signal']
         timestamps = mode_breath['timestamps']
@@ -621,37 +668,45 @@ def create_profile_from_features(plot_enabled=False):
         plot_profiles(profiles=people_profiles)
 
 def generate_breathing_signals(profiles):
-    for person in profiles:
-        breath_length_time = profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]["timestamps"][-1] - profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"]["timestamps"][0]
-        mode_breaths_weights = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths_weights"]
+    for person, profile in profiles.items():
+        mode_breaths = profile["mode_breaths"]
+        breath_length_time = mode_breaths[TARGET_ADC][0]["timestamps"][-1] - mode_breaths[TARGET_ADC][0]["timestamps"][0]
+        mode_breaths_weights = profile["mode_breaths_weights"]
 
         breaths_per_set_time = math.floor(NUMBER_OF_SIM_MINUTES*60*1000 / breath_length_time)
-        generated_signal = []
+
+        generated_signal = [[] for _ in range(ADC_COUNT)]
         generated_timestamps = []
         total_time = 0
-        last_signal_height = None
+        last_signal_height = [0.0 for _ in range(ADC_COUNT)]
+        
         for _ in range(breaths_per_set_time):
             rand_breath = random.choices(list(range(NUMBER_OF_MODE_BREATHS)), weights=mode_breaths_weights)[0]
-            first_signal_height = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"][0] 
-            if last_signal_height is None:
-                signal_height_offset = 0
-            else:
-                signal_height_offset = last_signal_height - first_signal_height
+            first_signal_height = [
+                mode_breaths[adc][rand_breath]["signal"][0] for adc in range(ADC_COUNT)
+                ]
             
-            aligned_signal = [s + signal_height_offset for s in profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"]]
+            if last_signal_height[0] == 0.0:
+                signal_height_offset = [0.0 for _ in range(ADC_COUNT)]
+            else:
+                signal_height_offset = [(last_signal_height[adc] - first_signal_height[adc]) for adc in range(ADC_COUNT)]
+            
+            aligned_signal = [[s + signal_height_offset[adc] for s in mode_breaths[adc][rand_breath]["signal"]] for adc in range(ADC_COUNT)]
 
-            generated_timestamps += [t - profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][0] + total_time for t in profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"]]
-            total_time += profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][-1] - profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["timestamps"][0]
-            generated_signal += aligned_signal
+            target_timestamps = mode_breaths[TARGET_ADC][rand_breath]["timestamps"]
+            generated_timestamps += [t - target_timestamps[0] + total_time for t in target_timestamps]
+            total_time += target_timestamps[-1] - target_timestamps[0]
 
-            last_signal_height = profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"][rand_breath]["signal"][-1]
+            for adc in range(ADC_COUNT):
+                generated_signal[adc] += aligned_signal[adc]
+            # last_signal_height = [mode_breaths[adc][rand_breath]["signal"][-1] for adc in range(ADC_COUNT)]
 
         plt.figure(figsize=(14, 7))
-        plt.plot(generated_timestamps, generated_signal, label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.8)
+        for adc in range(ADC_COUNT):
+            plt.plot(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+        # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.8)
         plt.title(f"generated breathing signal - {person}")
         plt.show()
-        
-        # break
        
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
@@ -674,23 +729,24 @@ def main():
     gen_enabled = args.gen
 
     people_profiles = create_data_profiles()
-    print(people_profiles)
+    # print(people_profiles)
 
     if plot_enabled:
+        plt.figure(figsize=(14, 7))
         for person in people_profiles:
-            plt.figure(figsize=(14, 7))
             random_color = np.random.rand(3)
-            for breath in people_profiles[person][f"adc_{TARGET_ADC}"]["mode_breaths"]:
+            # target_adc_breaths = people_profiles[person]["mode_breaths"][TARGET_ADC]
+            for breath in people_profiles[person]["mode_breaths"][TARGET_ADC]:
                 first_timestamp = breath['timestamps'][0]
                 temp_timestamps = [t - first_timestamp for t in breath['timestamps']]
                 plt.plot(temp_timestamps, breath['signal'], alpha=0.8, color=random_color)
             plt.title(f'Mode Breaths - {person}')
             plt.xlabel('Time (ms)')
             plt.ylabel('ADC Voltage')
-            plt.show()
+        plt.show()
 
         for person in people_profiles:
-            plot_mode_breath_on_file(people_profiles[person][f"adc_{TARGET_ADC}"]["mode_breath"], TARGET_ADC)
+            plot_mode_breath_on_file(people_profiles[person]["mode_breaths"][TARGET_ADC][0], TARGET_ADC)
         group_plot_mode_breaths(people_profiles)
 
     if gen_enabled:
