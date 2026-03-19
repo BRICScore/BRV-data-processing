@@ -27,6 +27,7 @@ def parser_setup():
 def main():
     parser = parser_setup()
 
+
     process_file(parser)
 
 if __name__ == "__main__":
