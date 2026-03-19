@@ -669,6 +669,8 @@ def create_profile_from_features(plot_enabled=False):
 
 def generate_breathing_signals(profiles):
     for person, profile in profiles.items():
+        breath_connect_points = []
+
         mode_breaths = profile["mode_breaths"]
         breath_length_time = mode_breaths[TARGET_ADC][0]["timestamps"][-1] - mode_breaths[TARGET_ADC][0]["timestamps"][0]
         mode_breaths_weights = profile["mode_breaths_weights"]
@@ -678,34 +680,49 @@ def generate_breathing_signals(profiles):
         generated_signal = [[] for _ in range(ADC_COUNT)]
         generated_timestamps = []
         total_time = 0
-        last_signal_height = [0.0 for _ in range(ADC_COUNT)]
         
         for _ in range(breaths_per_set_time):
             rand_breath = random.choices(list(range(NUMBER_OF_MODE_BREATHS)), weights=mode_breaths_weights)[0]
-            first_signal_height = [
-                mode_breaths[adc][rand_breath]["signal"][0] for adc in range(ADC_COUNT)
-                ]
-            
-            if last_signal_height[0] == 0.0:
-                signal_height_offset = [0.0 for _ in range(ADC_COUNT)]
-            else:
-                signal_height_offset = [(last_signal_height[adc] - first_signal_height[adc]) for adc in range(ADC_COUNT)]
-            
-            aligned_signal = [[s + signal_height_offset[adc] for s in mode_breaths[adc][rand_breath]["signal"]] for adc in range(ADC_COUNT)]
 
             target_timestamps = mode_breaths[TARGET_ADC][rand_breath]["timestamps"]
             generated_timestamps += [t - target_timestamps[0] + total_time for t in target_timestamps]
-            total_time += target_timestamps[-1] - target_timestamps[0]
+            total_time += (target_timestamps[-1] - target_timestamps[0])
+            total_time += (target_timestamps[-1] - target_timestamps[-2]) # we need to simulate some time between breaths, otherwise we get overlapping signals
+            
+            breath_connect_points.append(len(generated_timestamps))
 
             for adc in range(ADC_COUNT):
-                generated_signal[adc] += aligned_signal[adc]
-            # last_signal_height = [mode_breaths[adc][rand_breath]["signal"][-1] for adc in range(ADC_COUNT)]
+                generated_signal[adc] += mode_breaths[adc][rand_breath]["signal"]
+
+        # plt.figure(figsize=(14, 7))
+        # for adc in range(ADC_COUNT):
+        #     plt.plot(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+            # plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+        # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha = 0.5, color="red")
+        # plt.title(f"generated breathing signal - {person}")
+
+        # TODO: Ask Jakub about the interp_margin - when smooth is too smooth
+        # Smoothing out the connections between breaths
+        interp_margin = 5
+        breath_connect_points = breath_connect_points[:-1]
+        for adc in range(ADC_COUNT):
+            for i in range(len(breath_connect_points)-1):
+                start_idx = breath_connect_points[i] - interp_margin
+                end_idx = breath_connect_points[i] + interp_margin
+                if end_idx >= len(generated_timestamps):
+                    end_idx = len(generated_timestamps) - 1
+                x = [generated_timestamps[start_idx], generated_timestamps[end_idx]]
+                y = [generated_signal[adc][start_idx], generated_signal[adc][end_idx]]
+                f = spi.interp1d(x, y)
+                for j in range(start_idx, end_idx):
+                    generated_signal[adc][j] = f(generated_timestamps[j])
 
         plt.figure(figsize=(14, 7))
         for adc in range(ADC_COUNT):
             plt.plot(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
-        # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.8)
-        plt.title(f"generated breathing signal - {person}")
+            # plt.scatter(generated_timestamps, generated_signal[adc], label=f'Generated Breathing Signal - ADC {adc}', alpha=0.5)
+        # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.5, color="blue")
+        plt.title(f"interpolacja - {person}")
         plt.show()
        
 def parser_setup():
