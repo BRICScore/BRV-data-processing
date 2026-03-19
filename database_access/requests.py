@@ -3,28 +3,35 @@ import os
 import json
 import time
 from pathlib import Path
+from urllib3 import Retry
+from requests.adapters import HTTPAdapter
 
-def uploadMeasurement(filepath_raw: str, filepath_work: str):
-    headers = {"CF-Access-Client-Id": os.getenv("ACCESS_CLIENT_ID"), "CF-Access-Client-Secret": os.getenv("ACCESS_CLIENT_SECRET")}
+session = requests.Session()
+retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500,502,503,504])
+adapter = HTTPAdapter(max_retries=retries)
+headers = {"CF-Access-Client-Id": os.getenv("ACCESS_CLIENT_ID"), "CF-Access-Client-Secret": os.getenv("ACCESS_CLIENT_SECRET")}
+session.headers.update(headers)
+session.mount("https://", adapter)
+
+def uploadMeasurement(filepath_raw: str, filepath_clean: str):
+    
     form_data = {}
     #TODO: MOVE UI TO AN APP/WEBPAGE
     print("Fill measurement metadata:")
     form_data["person_id"] = str(input("Person ID (currently email): "))
 
 
-    workMeasurementFileHook = open(filepath_work, "rb")
-    jsonlines = workMeasurementFileHook.readlines()
-    jsonlines = jsonlines[::-1]
-    parsed_line = json.loads(jsonlines[0])
+    with open(filepath_clean, "rb") as workMeasurementFileHook:
+        jsonlines = workMeasurementFileHook.readlines()
+        jsonlines = jsonlines[::-1]
+        parsed_line = json.loads(jsonlines[0])
+    
     form_data["duration_ms"] = parsed_line["timestamp"]
     form_data["timestamp"] = time.time()
 
     print("Fill in labels for the measurement:")
 
     labels = {}
-
-    level = input("Level (raw/clean): ")
-    labels["level"] = level
 
     activity = input("Activity: ")
     labels["activity"] = activity
@@ -37,17 +44,18 @@ def uploadMeasurement(filepath_raw: str, filepath_work: str):
     labels["bio"] = {"age": age, "gender": gender, "health": health, "condition": condition}
 
     form_data["labels"] = json.dumps(labels)
-    
-    files = {"measurement_file_raw" : open(filepath_raw, "rb"), "measurement_file_clean": open(filepath_work, "rb")}
 
-    r = requests.put('https://brics-api.electimore.xyz/measurement/upload', headers=headers, files=files, data=form_data)
+    with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean:
+        files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean}
+        r = session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
+    r.raise_for_status()
     print(r.status_code)
     print(r.text)
     return
     
 def downloadMeasurement():
-    headers = {"CF-Access-Client-Id": os.getenv("ACCESS_CLIENT_ID"), "CF-Access-Client-Secret": os.getenv("ACCESS_CLIENT_SECRET")}
+    
     #TODO: MOVE UI TO AN APP/WEBPAGE
     print("Fill measurement download query parameters")
 
@@ -78,7 +86,7 @@ def downloadMeasurement():
         "health": health
     }    
     
-    r = requests.get('https://brics-api.electimore.xyz/measurement/download', headers=headers, params=query_data)
+    r = session.get('https://brics-api.electimore.xyz/measurement/download', params=query_data)
 
     path = Path.home() / "Downloads" / "measurements_dataset.zip"
     if r.status_code == 200:
@@ -87,16 +95,17 @@ def downloadMeasurement():
                 if chunk:
                     f.write(chunk)
 
+    r.raise_for_status()
     print(r.status_code)
     return
 
 def deleteMeasurement():
-    headers = {"CF-Access-Client-Id": os.getenv("ACCESS_CLIENT_ID"), "CF-Access-Client-Secret": os.getenv("ACCESS_CLIENT_SECRET")}
     query_data = {}
     measurement_id = input("Fill id of measurement to delete: ")
 
     query_data["measurement_id"] = measurement_id 
-    r = requests.delete('https://brics-api.electimore.xyz/measurement/delete', headers=headers, params=query_data)
+    r = session.delete('https://brics-api.electimore.xyz/measurement/delete', params=query_data, timeout=30)
 
+    r.raise_for_status()
     print(r.status_code)
     print(r.text)
