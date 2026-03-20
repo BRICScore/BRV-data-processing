@@ -109,7 +109,10 @@ def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=
 
     if plot_enabled:
         plt.plot(timestamps, data[target_adc], label='Cleaned Signal', color='blue')
-        plt.plot(resampled_timestamps, resampled_data[target_adc], label='Resampled Signal', color='orange')
+        for j in range(ADC_COUNT):
+            plt.plot(resampled_timestamps, resampled_data[j], label=f'Resampled Signal ADC {j}')
+            # plt.scatter(resampled_timestamps, resampled_data[j], label=f'Resampled Signal ADC {j}', s=10)
+
         plt.title("Resampled Signal")
         plt.legend()
         plt.show()

@@ -17,3 +17,4 @@ class ADCdata:
         self.final_adc_timestamps = None
 
         self.plot_enabled = False
+        self.debug_plot_enabled = False
