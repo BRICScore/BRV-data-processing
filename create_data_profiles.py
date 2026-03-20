@@ -92,9 +92,8 @@ def detect_breath_peaks(signal):
 
 def get_mode_breaths(all_breath_data, mode_values, avg_values, people_files):
     """ 
-    TODO
-    Identifies the most representative breath (mode breath) from the given breath dataset. The choice
-    is based on a weighted distance metric that considers the breath's depth, length and breathing 
+    Identifies a set of MODE_BREATH_COUNT  most representative breaths from the given breath dataset defined in all_breath_data.
+    The selection is based on a weighted distance metric that considers the breath's depth, length and breathing 
     phases' durations (inhale and exhale, the inspiratory and expiratory pauses have been excluded).
     
     Parameters
@@ -107,11 +106,17 @@ def get_mode_breaths(all_breath_data, mode_values, avg_values, people_files):
     avg_values : dict
         A dictionary containing the average values for breath features (depth, length, inhale duration,
         exhale duration, inspiratory pause duration, expiratory pause duration).
+    people_files : list of str
+        A list of file names (located in the ./results directory) from which to extract data for
+        the additional (other than TARGET_ADC) ADC channels for the selected mode breaths.
 
     Returns
     -------
     representative_breath : dict
         A dictionary containing the features of the most representative breath (mode breath) from the dataset.
+    representative_breaths_weights: list of int
+        A list of weights corresponding to the selected mode breaths, where the weight is inversely proportional
+        to the distance from mode values
 
     Side Effects
     ------------
@@ -144,7 +149,7 @@ def get_mode_breaths(all_breath_data, mode_values, avg_values, people_files):
 
     # TODO: rewrite this to np functions, for now I had some strange issues with them so we are using "sorted"
     sorted_distances = sorted(breath_distances, key=lambda x: x['distance'])
-    selected_count = min(NUMBER_OF_MODE_BREATHS, len(sorted_distances))
+    selected_count = min(MODE_BREATH_COUNT, len(sorted_distances))
     selected_breaths = [all_breath_data[sorted_distances[i]['index']] for i in range(selected_count)]
     representative_breaths_weights = [selected_count - i for i in range(selected_count)]
 
@@ -263,8 +268,8 @@ def extract_breath_data_from_file(file):
 
 def calculate_breath_characteristics(people_files):
     """
-    TODO
-    Calculates breath characteristics (depth, length, inhale duration, exhale duration) for each breath in the given files.
+    Calculates breath characteristics (depth, length, start_idx, end_idx, inhale duration, exhale duration)
+    for each breath in the given files.
 
     Parameters
     ----------
@@ -367,7 +372,6 @@ def get_mode_param(all_breath_data, param):
 
 def calculate_mode_and_avg_features(all_breath_data):
     """
-    TODO
     Calculates the average and mode values for breath characteristics (depth, length, inhale duration,
     exhale duration) from the breath dataset.
 
@@ -412,7 +416,6 @@ def calculate_mode_and_avg_features(all_breath_data):
 
 def create_data_profiles():
     """
-    TODO
     Creates data profiles for each person in the analyzed dataset (./results) by processing their respective files
     and calculating a set of characteristics.
 
@@ -426,7 +429,8 @@ def create_data_profiles():
         A dictionary where each key is a person's identifier (e.g., initials) and the value is another dictionary containing:
         - avg_values: A dictionary of average breath characteristics (depth, length, inhale duration, exhale duration).
         - mode_values: A dictionary of mode breath characteristics (depth, length, inhale duration, exhale duration).
-        - mode_breath: A dictionary containing the signal and timestamps of the mode breath for that person.
+        - mode_breaths_weights: A list of weights corresponding to the selected mode breaths.
+        - mode_breaths: A list of dictionaries containing the signal, timestamps and features of mode breaths for that person.
 
     Side Effects
     ------------
@@ -447,10 +451,8 @@ def create_data_profiles():
     for person in people_files:
         people_profiles[person] = {}
 
-        ### - to się dzieje tylko dla TARGET_ADC
         target_adc_all_breath_data = calculate_breath_characteristics(people_files[person])
         avg_values, mode_values = calculate_mode_and_avg_features(target_adc_all_breath_data)   
-        ###
 
         mode_breaths, mode_breaths_weights = get_mode_breaths(target_adc_all_breath_data, mode_values, avg_values, people_files[person])
 
@@ -464,13 +466,9 @@ def create_data_profiles():
     return people_profiles
 
 def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
-    """
-    TODO
-    """
     file_name = mode_breath['file_name']
     file_path = f'./results/{file_name}'
     
-    # Read the full file data
     with open(file_path, 'r') as f:
         file_lines = f.read().strip().split("\n")
     
@@ -500,9 +498,6 @@ def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
     plt.show()
 
 def group_plot_mode_breaths(people_profiles):
-    """
-    TODO
-    """
     retimed_breaths_for_people = {}
 
     for person in people_profiles:
@@ -668,6 +663,29 @@ def create_profile_from_features(plot_enabled=False):
         plot_profiles(profiles=people_profiles)
 
 def generate_breathing_signals(profiles):
+    """
+    Generates breathing signal for each person in the profiles dictionary by stacking randomly
+    (with weights) selected breaths from the person's mode breaths. For now the generated signal
+    is not saved anywhere.
+
+    Parameters
+    ----------
+    profiles : dict
+        A dictionary where each key is a person's identifier (e.g., initials) and the value is another dictionary containing:
+        - avg_values: A dictionary of average breath characteristics (depth, length, inhale duration, exhale duration).
+        - mode_values: A dictionary of mode breath characteristics (depth, length, inhale duration, exhale duration).
+        - mode_breaths_weights: A list of weights corresponding to the selected mode breaths.
+        - mode_breaths: A list of dictionaries containing the signal, timestamps and features of mode breaths for that person.
+
+    Returns
+    -------
+    None
+
+    Side Effects
+    ------------
+    This function has no side effects.
+    """
+
     for person, profile in profiles.items():
         breath_connect_points = []
 
@@ -675,14 +693,14 @@ def generate_breathing_signals(profiles):
         breath_length_time = mode_breaths[TARGET_ADC][0]["timestamps"][-1] - mode_breaths[TARGET_ADC][0]["timestamps"][0]
         mode_breaths_weights = profile["mode_breaths_weights"]
 
-        breaths_per_set_time = math.floor(NUMBER_OF_SIM_MINUTES*60*1000 / breath_length_time)
+        breaths_per_set_time = math.floor(SIM_MINUTES_COUNT*60*1000 / breath_length_time)
 
         generated_signal = [[] for _ in range(ADC_COUNT)]
         generated_timestamps = []
         total_time = 0
         
         for _ in range(breaths_per_set_time):
-            rand_breath = random.choices(list(range(NUMBER_OF_MODE_BREATHS)), weights=mode_breaths_weights)[0]
+            rand_breath = random.choices(list(range(MODE_BREATH_COUNT)), weights=mode_breaths_weights)[0]
 
             target_timestamps = mode_breaths[TARGET_ADC][rand_breath]["timestamps"]
             generated_timestamps += [t - target_timestamps[0] + total_time for t in target_timestamps]
@@ -723,8 +741,6 @@ def generate_breathing_signals(profiles):
         # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.5, color="blue")
         plt.title(f"breathing signal gen - {person}")
         plt.show()
-
-        # break
        
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
@@ -747,7 +763,6 @@ def main():
     gen_enabled = args.gen
 
     people_profiles = create_data_profiles()
-    # print(people_profiles)
 
     if plot_enabled:
         plt.figure(figsize=(14, 7))
