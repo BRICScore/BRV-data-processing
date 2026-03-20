@@ -40,5 +40,5 @@ INHALE_INDEX = 0
 EXHALE_INDEX = 2
 MIN_INHALE_OR_EXHALE_LENGTH = 500.0
 
-NUMBER_OF_MODE_BREATHS = 5 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
-NUMBER_OF_SIM_MINUTES = 2
+MODE_BREATH_COUNT = 5 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
+SIM_MINUTES_COUNT = 2
