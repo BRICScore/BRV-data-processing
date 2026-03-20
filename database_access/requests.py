@@ -47,7 +47,7 @@ def uploadMeasurement(filepath_raw: str, filepath_clean: str):
 
     with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean:
         files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean}
-        r = session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
+        r = session.post('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
     r.raise_for_status()
     print(r.status_code)
