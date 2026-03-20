@@ -14,6 +14,24 @@ session.headers.update(headers)
 session.mount("https://", adapter)
 
 def uploadMeasurement(filepath_raw: str, filepath_clean: str):
+    """
+        Upload measurement files into the database for future use.
+
+        Parameters
+        ----------
+        filepath_raw : str
+            String containing the path (absolute or relative) to a file containing raw BRV data.
+        filepath_clean : str
+            String containing the path (absolute or relative) to a file containing corresponding cleaned BRV data.
+        
+        Returns
+        -------
+        none
+        
+        Side Effects
+        ------------
+        This function will result in a files being uploaded into the database and creation of a record corresponding to them.
+    """
     
     form_data = {}
     #TODO: MOVE UI TO AN APP/WEBPAGE
@@ -55,6 +73,22 @@ def uploadMeasurement(filepath_raw: str, filepath_clean: str):
     return
     
 def downloadMeasurement():
+    """
+        Download measurement files from the database with accordance to the query.
+
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        
+        Side Effects
+        ------------
+        This function will result in a zip archive being created in the user's Downloads directory, if it exists.
+    """
+
     
     #TODO: MOVE UI TO AN APP/WEBPAGE
     print("Fill measurement download query parameters")
@@ -100,6 +134,21 @@ def downloadMeasurement():
     return
 
 def deleteMeasurement():
+    """
+        Delete measurement record and files from database using it's ID.
+
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        
+        Side Effects
+        ------------
+        This function will result in a measurement record and files being permamently deleted, if they exist.
+    """
     query_data = {}
     measurement_id = input("Fill id of measurement to delete: ")
 
