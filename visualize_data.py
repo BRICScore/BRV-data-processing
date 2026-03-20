@@ -11,9 +11,7 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 import seaborn as sns
 
-
 sys.path.append("feature_processing")
-from eigenvalues_extraction import *
 import json
 import random
 
