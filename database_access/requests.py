@@ -5,6 +5,11 @@ import time
 from pathlib import Path
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
+import dotenv
+dotenv.load_dotenv(".env")
+from config import MEASUREMENT_ZIP_PATH
+
+#TODO: PUT THIS IN A CLASS - easier for UI and session handling
 
 session = requests.Session()
 retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500,502,503,504])
@@ -122,9 +127,9 @@ def downloadMeasurement():
     
     r = session.get('https://brics-api.electimore.xyz/measurement/download', params=query_data)
 
-    path = Path.home() / "Downloads" / "measurements_dataset.zip"
+    
     if r.status_code == 200:
-        with open(path, "wb") as f:
+        with open(MEASUREMENT_ZIP_PATH, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
