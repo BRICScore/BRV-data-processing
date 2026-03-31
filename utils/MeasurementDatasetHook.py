@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Literal
-import database_access.requests as db
 import os
 from config import MEASUREMENT_ZIP_PATH
 import MeasurementDirectoryProvider as mdp
