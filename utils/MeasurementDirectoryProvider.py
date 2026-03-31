@@ -3,7 +3,8 @@ from pathlib import Path
 import tempfile
 import shutil
 from config import MEASUREMENT_ZIP_PATH
-type MeasurementType = Literal["raw", "clean"]
+from brics_types.MeasurementType import MeasurementType
+
 
 class MeasurementDirectoryProvider:
 
