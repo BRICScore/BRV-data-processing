@@ -1,9 +1,13 @@
 from dataclasses import dataclass
-from brics_types import ActivityType
-from .BioData import BioData
+from .MeasurementLabels import MeasurementLabels
+from pathlib import Path
 
 @dataclass
 class MeasurementMetadata:
-    activity: ActivityType
-    person_data: BioData
-
+    _id: str
+    timestamp: float
+    duration_ms: int
+    filepath_raw: Path
+    filepath_clean: Path
+    filepath_features: Path
+    labels: MeasurementLabels

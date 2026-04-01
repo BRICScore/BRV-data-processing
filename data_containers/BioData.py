@@ -4,6 +4,7 @@ from brics_types import ConditionType, GenderType
 
 @dataclass
 class BioData:
+    person_id: str
     age : int
     gender : GenderType
     health: str
