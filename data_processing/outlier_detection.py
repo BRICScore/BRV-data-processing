@@ -1,7 +1,5 @@
 from config import *
 
-from signal import signal
-
 from data_containers import BRVDataClean
 
 def calculate_breaths(BRV_data_intermediate, target_adc):
@@ -11,16 +9,9 @@ def calculate_breaths(BRV_data_intermediate, target_adc):
 
         Parameters
         ----------
-        timestamps : np.ndarray
-            An array of timestamps.
-        adc_normalized_data : list of np.ndarray
-            A list of arrays containing the normalized ADC data for each channel.
-        signal_maxima : np.ndarray
-            An array of indices representing the local maxima in the signal.
-        signal_minima : np.ndarray
-            An array of indices representing the local minima in the signal.
-        target_adc : int
-            The index of the ADC to analyze for outliers.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps further 
+            defined in project's DTP.
 
         Returns
         -------
@@ -140,12 +131,15 @@ def time_outliers(adc_normalized_data, target_adc, breaths):
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        adc_normalized_data : numpy.ndarray
+            The normalized ADC data to analyze for outliers.
+
         target_adc : int
             The index of the ADC to analyze for outliers.
-        breaths : list 
-            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
+
+        breaths : list of dictionaries
+            A list of dictionaries representing the separated breaths that contain the
+            breath data, timestamps, and metadata for each breath.
 
         Returns
         -------
@@ -189,17 +183,20 @@ def time_outliers(adc_normalized_data, target_adc, breaths):
 
 def amplitude_outliers(adc_normalized_data, target_adc, breaths):
     """
-        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the lowest and tallest 
+        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the tallest and shortest 
         breaths removed as outliers
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        adc_normalized_data : numpy.ndarray
+            The normalized ADC data to analyze for outliers.
+
         target_adc : int
             The index of the ADC to analyze for outliers.
-        breaths : list 
-            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
+
+        breaths : list of dictionaries
+            A list of dictionaries representing the separated breaths that contain the
+            breath data, timestamps, and metadata for each breath.
 
         Returns
         -------
@@ -247,14 +244,18 @@ def remove_outliers_and_remake_signal(target_adc, non_time_outlier_signal, non_a
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
         non_time_outlier_signal : numpy.ndarray
             The normalized ADC signal with time outlier breaths set to NaN.
         non_amplitude_outlier_signal : numpy.ndarray
             The normalized ADC signal with amplitude outlier breaths set to NaN.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps further 
+            defined in project's DTP.
+        BRV_data_clean : BRVDataClean
+                The BRVDataClean object to store the final cleaned and resampled ADC data and timestamps 
+                further defined in project's DTP.
 
         Returns
         -------
@@ -263,7 +264,7 @@ def remove_outliers_and_remake_signal(target_adc, non_time_outlier_signal, non_a
         Side Effects
         ------------
         This function may plot the removed data if the plot_enabled flag is set to true and 
-        sets the final_adc_data and final_adc_timestamps attributes of the adc_data object.
+        sets the adc_data and timestamps attributes of the BRV_data_clean object.
     """
     timestamps = BRV_data_intermediate.timestamps
     adc_normalized_data = BRV_data_intermediate.adc_normalized_data
@@ -332,7 +333,6 @@ def remove_outliers_and_remake_signal(target_adc, non_time_outlier_signal, non_a
         target_adc, True
     )
     
-
 def outlier_detection(BRV_data_intermediate, target_adc):
     """
         This function serves as the main function for outlier detection. It organizes and calls other functions 
@@ -340,19 +340,21 @@ def outlier_detection(BRV_data_intermediate, target_adc):
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
 
         Returns
         -------
-        non_outlier_signal : numpy.ndarray
-            The normalized ADC signal with outlier breaths set to NaN.           
+        BRV_data_clean : BRVDataClean
+            The BRVDataClean object containing the cleaned and resampled ADC data and timestamps further
+            defined in project's DTP.        
         
         Side Effects
         ------------
-        This function has no side effects.
+        This function has no immediate side effects but may result in changes to the BRV_data_clean object
+        and plotting of several graphs.
     """
     BRV_data_clean = BRVDataClean()
     breaths = calculate_breaths(BRV_data_intermediate, target_adc)
