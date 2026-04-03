@@ -20,10 +20,8 @@ def breath_separation(BRV_data_intermediate, target_adc):
 
         Parameters
         ----------
-        timestamps : np.ndarray
-            An array of timestamps.
-        adc_normalized_data : list of np.ndarray
-            A list of arrays containing the normalized ADC data for each channel.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
         
@@ -34,7 +32,7 @@ def breath_separation(BRV_data_intermediate, target_adc):
         Side Effects
         ------------
         This function may visualize the split breahts by coloring each breath differently if the plot_enabled flag is set to true
-        and sets the signal_maxima and signal_minima attributes of the adc_data object.
+        and sets the signal_maxima and signal_minima attributes of the BRV_data_intermediate object.
     """
 
     def find_signal_extrema(adc_normalized_data, target_adc, invert=False):
@@ -69,7 +67,6 @@ def breath_separation(BRV_data_intermediate, target_adc):
 
     BRV_data_intermediate.signal_maxima = signal_maxima
     BRV_data_intermediate.signal_minima = signal_minima
-
 
 def parse_adc_data_line(line: str):
     """
@@ -158,8 +155,9 @@ def split_data_into_segments(input_file, BRV_data_clean):
         input_file: str
             The name of the raw input file containing the ADC data, the name consists of labels
             that are used to create the output file names.
-        adc_data: ADCdata
-            An instance of the ADCdata class containing the resampled ADC data and timestamps.
+        BRV_data_clean : BRVDataClean
+            The BRVDataClean object containing the cleaned and resampled ADC data and timestamps further
+            defined in project's DTP.
 
         Returns
         -------
@@ -203,12 +201,13 @@ def process_raw_file(input_file: str):
 
         Returns
         -------
-        None           
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps further defined in project's DTP.
         
         Side Effects
         ------------
-        This function modifies the adc_data object by writing data into adc_data.adc_normalized_data and 
-        adc_data.adc_voltafe_means attributes.
+        This function modifies the BRV_data_intermediate object by writing data into its
+        timestamps and adc_normalized_data attributes.
     """
 
     BRV_data_intermediate = BRVDataIntermediate()
