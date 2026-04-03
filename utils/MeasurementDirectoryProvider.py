@@ -7,23 +7,62 @@ from brics_types.MeasurementType import MeasurementType
 
 
 class MeasurementDirectoryProvider:
+    """
+            Class for providing the correct measurement zip file directory. Requires a measurement zip archive to exist.
 
-    def __init__(self, target: MeasurementType):
-        self.target = target
-        self.folder_path = self._unpack_zip()
+            Methods
+            ----------
+            provide_directory(target: MeasurementType)
+                Returns a Path to the extracted, temporary directory containing the files of the chosen type.
+
+    """
+
+    def __init__(self):
+        self.folder_path = self.__unpack_zip()
         return
 
     def provide_directory(self, target: MeasurementType) -> Path:
-        resolved_folder_path = self._resolve_folder_path(target)
+        """
+            Provides a Path to the temporary directory containing the files matching the chosen type.
+
+            Arguments
+            ----------
+            target: MeasurementType
+                The type of files to be contained in the returned directory.
+
+            Returns
+            ----------
+            A Path to the temporary directory. 
+        """
+        resolved_folder_path = self.__resolve_folder_path(target)
         return resolved_folder_path
 
-    def _unpack_zip(self) -> Path:
+    def __unpack_zip(self) -> Path:
+        """
+            Unpacks the measurement zip archive into a temporary directory.
+
+            Returns
+            ----------
+            A Path to the temporary directory containing the entire archive. 
+        """
         folder_path = Path(tempfile.mkdtemp())
         shutil.unpack_archive(MEASUREMENT_ZIP_PATH, folder_path)
         return Path
     
-    def _resolve_folder_path(self) -> Path:
-        resolved_folder_path = self.folder_path / "measurement_dataset" / self.target
+    def __resolve_folder_path(self, target: MeasurementType) -> Path:
+        """
+            Builds a path into the directory with the chosen type of files.
+
+            Arguments
+            ----------
+            target: MeasurementType
+                The type of files to be contained in the returned directory.
+
+            Returns
+            ----------
+            A Path to the temporary directory containing the chosen type of files. 
+        """
+        resolved_folder_path = self.folder_path / "measurement_dataset" / target
         return resolved_folder_path
 
     
