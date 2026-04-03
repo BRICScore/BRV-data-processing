@@ -38,7 +38,7 @@ def load_measurement_data(measurement_data): # create dummy data before pipeline
 
 def extract_features(measurement_data=None):
     """
-    
+
     """
 
     file = None

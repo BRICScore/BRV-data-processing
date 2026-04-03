@@ -548,15 +548,18 @@ def display_specgram(signal_data, target=TARGET_ADC, amplitude_resolution=10):
     plt.show()
     print(heat_array[0])
         
-def write_features_to_file(features, input_file="temp.jsonl"):
+def write_features_to_file(features, measurement_data, input_file="temp.jsonl"):
     with open(f"./features/extracted_features.jsonl", 'a') as o_f:
         o_f.write("{")
 
         for key in features:
             o_f.write(f"\"{key}\": {list(features[key]) if type(features[key]) == np.ndarray else features[key]}")
             o_f.write(", ")
-        temp_feature_name = input_file.split("_")
-        o_f.write(f"\"person\": \"{temp_feature_name[PERSON_ID]}_{temp_feature_name[ACTIVITY_ID]}\"")
+        labels = measurement_data.metadata.labels
+        activity = labels.activity
+        person = labels.person_data.person_id
+        # TODO change labels to only print as metadata at the start of the file - pipeline
+        o_f.write(f"\"person\": \"{person}_{activity}\"")
         o_f.write("}\n")
 
 def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
@@ -616,7 +619,7 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if False:
         plot_data(input_file, signal_data, avg_breath_depth)
-    write_features_to_file(features=features, input_file=input_file)
+    write_features_to_file(features=features, measurement_data=measure_data, input_file=input_file)
 
     if False:
         plt.figure(figsize=(8,6))
