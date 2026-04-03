@@ -3,6 +3,9 @@ from numpy import ndarray
 
 @dataclass
 class BRVDataFeatures:
+    def __init__(self):
+        pass
+
     feature_files: list 
     feature_colors: list
     feature_count: list

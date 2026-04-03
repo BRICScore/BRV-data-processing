@@ -5,8 +5,9 @@ sys.path.append("feature_processing")
 sys.path.append("utils")
 
 from feature_extraction import *
-from config import ADC_COUNT, ACCEPTABLE_DATA_LOSS
+from config import *
 from data_containers import *
+from pathlib import Path
 
 RESULTS_PATH = './results'
 
@@ -29,10 +30,10 @@ def load_measurement_data(measurement_data): # create dummy data before pipeline
                      weight=69, height=165)
         labels = MeasurementLabels(activity="sit", person_data=bd)
         metadata = MeasurementMetadata(_id="1234567890", timestamp=2137420, duration_ms=1_800_000,
-                                       filepath_raw="./bruh", filepath_clean="./essa", filepath_features="./frfr",
+                                       filepath_raw=Path("./bruh"), filepath_clean=Path("./essa"), filepath_features=Path("./frfr"),
                                        labels=labels)
-        clean = BRVDataClean(timestamps=None, adc_data=None)
-        measure_data = MeasurementData(metadata=metadata, data_clean=clean, data_features=None)
+        clean = BRVDataClean()
+        measure_data = MeasurementData(metadata=metadata, data_clean=clean, data_features=BRVDataFeatures())
         return measure_data
 
 

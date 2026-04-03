@@ -1,9 +1,13 @@
 from dataclasses import dataclass
-from numpy import ndarray, float64
+from numpy import float64, int64
+from numpy.typing import NDArray
 
 @dataclass
 class BRVDataIntermediate: 
-    timestamps: ndarray[float]
-    adc_data: ndarray[tuple[int, 5], float64]
-    signal_minima: ndarray[int]
-    signal_maxima: ndarray[int]
+    def __init__(self):
+        pass
+    
+    timestamps: NDArray[float64] 
+    adc_normalized_data: list[NDArray[float64]]
+    signal_minima: NDArray[int64]
+    signal_maxima: NDArray[int64]

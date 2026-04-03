@@ -4,6 +4,7 @@ from config import *
 
 # Class used to pass measurement calculated parameters locally
 # It is just used in current file, locally
+# TODO fill the fields
 class FeatureExtractionData:
     clean_data: BRVDataClean
     breath_count: int
