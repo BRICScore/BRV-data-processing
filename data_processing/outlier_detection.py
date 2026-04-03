@@ -1,16 +1,17 @@
 from config import *
 
-def calculate_breaths(adc_data, target_adc):
+from data_containers import BRVDataClean, BRVDataIntermediate
+
+def calculate_breaths(BRV_data_intermediate, target_adc):
     """
         Generate an array of dictionaries representing the separated breaths that contain the
         breath data, timestamps, and metadata for each breath.
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
-        target_adc : int
-            The index of the ADC to analyze for outliers.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps further 
+            defined in project's DTP.
 
         Returns
         -------
@@ -22,24 +23,28 @@ def calculate_breaths(adc_data, target_adc):
         ------------
         This function has no side effects
     """
-    local_minima = adc_data.signal_minima
+    signal_maxima = BRV_data_intermediate.signal_maxima
+    signal_minima = BRV_data_intermediate.signal_minima
+    adc_normalized_data = BRV_data_intermediate.adc_normalized_data
+    timestamps = BRV_data_intermediate.timestamps
     breaths = []
-    for i in range(len(local_minima) - 1):
-        breath = adc_data.adc_normalized_data[target_adc][local_minima[i]:local_minima[i + 1]]
-        max_index = adc_data.signal_maxima[np.where((adc_data.signal_maxima > local_minima[i]) & (adc_data.signal_maxima < local_minima[i + 1]))]
-        # print(f"max_index: {max_index}, max_value: {breath[max_index - local_minima[i]]}")
-        max_timestamp = adc_data.timestamps[max_index]
+
+    for i in range(len(signal_minima) - 1):
+        breath = adc_normalized_data[target_adc][signal_minima[i]:signal_minima[i + 1]]
+        max_index = signal_maxima[np.where((signal_maxima > signal_minima[i]) & (signal_maxima < signal_minima[i + 1]))]
+        # print(f"max_index: {max_index}, max_value: {breath[max_index - signal_minima[i]]}")
+        max_timestamp = timestamps[max_index]
 
         breaths.append({
             "breath": breath,
-            "start_index": local_minima[i],
-            "end_index": local_minima[i + 1],
-            "start_timestamp": adc_data.timestamps[local_minima[i]],
-            "end_timestamp": adc_data.timestamps[local_minima[i + 1]],
-            "timestamps": adc_data.timestamps[local_minima[i]:local_minima[i + 1]],
-            "duration": adc_data.timestamps[local_minima[i + 1]] - adc_data.timestamps[local_minima[i]],
+            "start_index": signal_minima[i],
+            "end_index": signal_minima[i + 1],
+            "start_timestamp": timestamps[signal_minima[i]],
+            "end_timestamp": timestamps[signal_minima[i + 1]],
+            "timestamps": timestamps[signal_minima[i]:signal_minima[i + 1]],
+            "duration": timestamps[signal_minima[i + 1]] - timestamps[signal_minima[i]],
             "max_index": max_index,
-            "max_value": breath[max_index - local_minima[i]],
+            "max_value": breath[max_index - signal_minima[i]],
             "max_timestamp": max_timestamp,
             "amplitude": np.max(breath) - np.min(breath)
         })
@@ -82,10 +87,10 @@ def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=
             The ADCdata object containing the ADC data with the outlier breaths removed.
         timestamps : numpy.ndarray
             The timestamps corresponding to the data object.
-        plot_enabled : bool
-            The plotting flag that determines whether to plot the resampled data.
         target_adc : int
             The index of the ADC to analyze, all adcs will be resampled but only the target_adc will be plotted if plot_enabled is True.
+        plot_enabled : bool
+            The plotting flag that determines whether to plot the resampled data.
 
         Returns
         -------
@@ -102,7 +107,7 @@ def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=
     signal_duration = timestamps[-1] - timestamps[0]
     resampled_node_count = int(signal_duration // 100)
     print(f"Signal duration: {signal_duration} ms, resampled_node_count: {resampled_node_count}")
-    resampled_data = [[] for _ in range(ADC_COUNT)]
+    resampled_data = [np.array([]) for _ in range(ADC_COUNT)]
     resampled_timestamps = resample_data(timestamps, resampled_node_count)
     for i in range(ADC_COUNT):
         resampled_data[i] = resample_data(data[i], resampled_node_count)
@@ -119,19 +124,22 @@ def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=
     
     return resampled_data, resampled_timestamps
 
-def time_outliers(adc_data, target_adc, breaths):
+def time_outliers(BRV_data_intermediate: BRVDataIntermediate, target_adc: int, breaths: list, plot_enabled: bool=False):
     """
         Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the shortest and longest 
         breaths removed as outliers
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
-        breaths : list 
-            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
+        breaths : list of dictionaries
+            A list of dictionaries representing the separated breaths that contain the
+            breath data, timestamps, and metadata for each breath.
+        plot_enabled : bool
+            A flag that turns plotting on and off
 
         Returns
         -------
@@ -151,10 +159,9 @@ def time_outliers(adc_data, target_adc, breaths):
         if breath["duration"] < lower_bound or breath["duration"] > upper_bound:  
             outlier_breaths.append(breath)
 
-    original_signal = adc_data.adc_normalized_data[target_adc].copy()
-    non_outlier_signal= adc_data.adc_normalized_data[target_adc].copy()
+    original_signal = BRV_data_intermediate.adc_normalized_data[target_adc].copy()
+    non_outlier_signal= BRV_data_intermediate.adc_normalized_data[target_adc].copy()
     time_outlier_signal = np.full_like(original_signal, np.nan)
-    # full_like - creates an array of the same shape as the original
 
     for outlier_breath in outlier_breaths:
         start_index = outlier_breath["start_index"]
@@ -163,30 +170,33 @@ def time_outliers(adc_data, target_adc, breaths):
         time_outlier_signal[start_index:end_index] = original_signal[start_index:end_index]
         non_outlier_signal[start_index:end_index] = np.nan
 
-    if adc_data.plot_enabled:
+    if plot_enabled:
         plt.title("Time outliers")
-        plt.plot(adc_data.timestamps, original_signal, label='Original Signal', color='gray')
-        plt.plot(adc_data.timestamps, non_outlier_signal, label='Non-outlier Signal', color="green")
-        plt.plot(adc_data.timestamps, time_outlier_signal, label='Outlier Signal', color='red')
+        plt.plot(BRV_data_intermediate.timestamps, original_signal, label='Original Signal', color='gray')
+        plt.plot(BRV_data_intermediate.timestamps, non_outlier_signal, label='Non-outlier Signal', color="green")
+        plt.plot(BRV_data_intermediate.timestamps, time_outlier_signal, label='Outlier Signal', color='red')
         plt.legend()
         plt.show()
 
     return non_outlier_signal
 
-def amplitude_outliers(adc_data, target_adc, breaths):
+def amplitude_outliers(BRV_data_intermediate: BRVDataIntermediate, target_adc: int, breaths: list, plot_enabled: bool=False):
     """
-        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the lowest and tallest 
+        Generate a adc_signal that has had a PERCENTILE_THRESHOLD% of the tallest and shortest 
         breaths removed as outliers
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
-        breaths : list 
-            A list of dictionaries representing the separated breaths returned by the calculate_breaths function.
-
+        breaths : list of dictionaries
+            A list of dictionaries representing the separated breaths that contain the
+            breath data, timestamps, and metadata for each breath.
+        plot_enabled : bool
+            A flag that turns plotting on and off
+            
         Returns
         -------
         non_outlier_signal : numpy.ndarray
@@ -205,7 +215,7 @@ def amplitude_outliers(adc_data, target_adc, breaths):
         if outlier_breath["amplitude"] < lower_bound or outlier_breath["amplitude"] > upper_bound:
             outlier_breaths.append(outlier_breath)
 
-    original_signal = adc_data.adc_normalized_data[target_adc].copy()
+    original_signal = BRV_data_intermediate.adc_normalized_data[target_adc].copy()
     non_outlier_signal = original_signal.copy()
     amplitude_outlier_signal = np.full_like(original_signal, np.nan)
 
@@ -216,31 +226,44 @@ def amplitude_outliers(adc_data, target_adc, breaths):
         amplitude_outlier_signal[start_index:end_index] = original_signal[start_index:end_index]
         non_outlier_signal[start_index:end_index] = np.nan
 
-    if adc_data.plot_enabled:
+    if plot_enabled:
         plt.title("Amplitude outliers")
-        plt.plot(adc_data.timestamps, original_signal, label='Original Signal', color='gray')
-        plt.plot(adc_data.timestamps, non_outlier_signal, label='Non-outlier Signal', color='green')
-        plt.plot(adc_data.timestamps, amplitude_outlier_signal, label='Outlier Signal', color='red')
+        plt.plot(BRV_data_intermediate.timestamps, original_signal, label='Original Signal', color='gray')
+        plt.plot(BRV_data_intermediate.timestamps, non_outlier_signal, label='Non-outlier Signal', color='green')
+        plt.plot(BRV_data_intermediate.timestamps, amplitude_outlier_signal, label='Outlier Signal', color='red')
         plt.legend()
         plt.show()
 
     return non_outlier_signal
 
-def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_signal, non_amplitude_outlier_signal):
+def remove_outliers_and_remake_signal(
+        target_adc : int,
+        non_time_outlier_signal : np.ndarray, 
+        non_amplitude_outlier_signal : np.ndarray, 
+        BRV_data_intermediate : BRVDataIntermediate, 
+        BRV_data_clean : BRVDataClean,
+        plot_enabled : bool=False):
     """
         Generate a adc_signal that has both time and amplitude outlier breaths removed.
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
         non_time_outlier_signal : numpy.ndarray
             The normalized ADC signal with time outlier breaths set to NaN.
         non_amplitude_outlier_signal : numpy.ndarray
             The normalized ADC signal with amplitude outlier breaths set to NaN.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps further 
+            defined in project's DTP.
+        BRV_data_clean : BRVDataClean
+            The BRVDataClean object to store the final cleaned and resampled ADC data and timestamps 
+            further defined in project's DTP.
+        plot_enabled : bool
+            A flag that turns plotting on and off
 
+                
         Returns
         -------
         none
@@ -248,18 +271,21 @@ def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_sig
         Side Effects
         ------------
         This function may plot the removed data if the plot_enabled flag is set to true and 
-        sets the final_adc_data and final_adc_timestamps attributes of the adc_data object.
+        sets the adc_data and timestamps attributes of the BRV_data_clean object.
     """
-    original_signal = copy.deepcopy(adc_data.adc_normalized_data)
+    timestamps = BRV_data_intermediate.timestamps
+    adc_normalized_data = BRV_data_intermediate.adc_normalized_data
+    
+    original_signal = copy.deepcopy(adc_normalized_data)
 
     for i in range(len(original_signal[target_adc])):
         if np.isnan(non_time_outlier_signal[i]) or np.isnan(non_amplitude_outlier_signal[i]):
             for j in range(ADC_COUNT):
                 original_signal[j][i] = np.nan
 
-    if adc_data.plot_enabled:
-        plt.plot(adc_data.timestamps, adc_data.adc_normalized_data[target_adc], label='Original Signal', color='gray')
-        plt.plot(adc_data.timestamps, original_signal[target_adc], label='Cleaned Signal', color='blue')
+    if plot_enabled:
+        plt.plot(timestamps, adc_normalized_data[target_adc], label='Original Signal', color='gray')
+        plt.plot(timestamps, original_signal[target_adc], label='Cleaned Signal', color='blue')
         plt.title("Clean adc_normalized_data")
         plt.legend()
         plt.show()
@@ -268,7 +294,7 @@ def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_sig
     clean_adc_normalized_data = [[] for _ in range(ADC_COUNT)]
     for i in range(len(original_signal[target_adc])):
         if not np.isnan(original_signal[target_adc][i]):
-            clean_adc_normalized_timestamps.append(adc_data.timestamps[i])
+            clean_adc_normalized_timestamps.append(timestamps[i])
             for j in range(ADC_COUNT):
                 clean_adc_normalized_data[j].append(original_signal[j][i])
 
@@ -276,64 +302,76 @@ def remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_sig
     # then when we want to write any non-NaN data to the nan_adjusted_data and nan_adjusted_timestamps
     # we subtract the total time shift from the original timestamp to get the new timestamp
     # then after we get this NaN free signal we resample it to RESAMPLE_NODE_COUNT nodes
-    nan_adjusted_timestamps = []
-    nan_adjusted_data = [[] for _ in range(ADC_COUNT)]
+    nan_adjusted_timestamps = np.array([])
+    nan_adjusted_data = [np.array([]) for _ in range(ADC_COUNT)]
     total_time_shift = 0
     first_nan_timestamp = None
-    for i in range(len(adc_data.timestamps)):
+    for i in range(len(timestamps)):
         if not np.isnan(original_signal[target_adc][i]):
             if first_nan_timestamp is not None:
-                time_shift = adc_data.timestamps[i] - first_nan_timestamp
+                time_shift = timestamps[i] - first_nan_timestamp
                 total_time_shift += time_shift
-                adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
-                nan_adjusted_timestamps.append(adjusted_timestamp)
+                adjusted_timestamp = timestamps[i] - total_time_shift
+                nan_adjusted_timestamps = np.append(nan_adjusted_timestamps, adjusted_timestamp)
                 # print(f"Adjusted timestamp: {adjusted_timestamp}, original: {adc_data.timestamps[i]}, total_time_shift: {total_time_shift}")
                 for j in range(ADC_COUNT):
-                    nan_adjusted_data[j].append(original_signal[j][i])
+                    nan_adjusted_data[j] = np.append(nan_adjusted_data[j], original_signal[j][i])
                 first_nan_timestamp = None
             else:
-                adjusted_timestamp = adc_data.timestamps[i] - total_time_shift
-                nan_adjusted_timestamps.append(adjusted_timestamp)
+                adjusted_timestamp = timestamps[i] - total_time_shift
+                nan_adjusted_timestamps = np.append(nan_adjusted_timestamps, adjusted_timestamp)
                 for j in range(ADC_COUNT):
-                    nan_adjusted_data[j].append(original_signal[j][i])
+                    nan_adjusted_data[j] = np.append(nan_adjusted_data[j], original_signal[j][i])
         else:
             if first_nan_timestamp is None:
-                first_nan_timestamp = adc_data.timestamps[i]
-            
+                first_nan_timestamp = timestamps[i]
 
-    if adc_data.plot_enabled:        
+    if plot_enabled:        
         plt.plot(nan_adjusted_timestamps, nan_adjusted_data[target_adc], label='Cleaned Signal', color='blue')
         plt.title("NaN adjusted timestamps")
         plt.legend()
         plt.show()
     
-    resampled_data, resampled_timestamps = resample_adc_data_and_timestamps(nan_adjusted_data, nan_adjusted_timestamps, target_adc, adc_data.plot_enabled)
-
-    adc_data.final_adc_data = resampled_data
-    adc_data.final_adc_timestamps = resampled_timestamps 
-
-def outlier_detection(adc_data, target_adc):
+    BRV_data_clean.adc_data, BRV_data_clean.timestamps = resample_adc_data_and_timestamps(
+        nan_adjusted_data,
+        nan_adjusted_timestamps,
+        target_adc, True
+    )
+    
+def outlier_detection(BRV_data_intermediate, target_adc, plot_enabled=False):
     """
         This function serves as the main function for outlier detection. It organizes and calls other functions 
         in order to clean and resample the ADC data.
 
         Parameters
         ----------
-        adc_data : ADCdata
-            The ADCdata object containing the normalized ADC data and timestamps.
+        BRV_data_intermediate : BRVDataIntermediate
+            The BRVDataIntermediate object containing the normalized ADC data and timestamps.
         target_adc : int
             The index of the ADC to analyze for outliers.
+        plot_enabled : bool
+            A flag that turns plotting on and off
 
         Returns
         -------
-        non_outlier_signal : numpy.ndarray
-            The normalized ADC signal with outlier breaths set to NaN.           
+        BRV_data_clean : BRVDataClean
+            The BRVDataClean object containing the cleaned and resampled ADC data and timestamps further
+            defined in project's DTP.        
         
         Side Effects
         ------------
-        This function has no side effects.
+        This function has no immediate side effects but may result in changes to the BRV_data_clean object
+        and plotting of several graphs.
     """
-    breaths = calculate_breaths(adc_data, target_adc)
-    non_time_outlier_signal = time_outliers(adc_data, target_adc, breaths)
-    non_amplitude_outlier_signal = amplitude_outliers(adc_data, target_adc, breaths)
-    remove_outliers_and_remake_signal(adc_data, target_adc, non_time_outlier_signal, non_amplitude_outlier_signal)
+    BRV_data_clean = BRVDataClean()
+    breaths = calculate_breaths(BRV_data_intermediate, target_adc)
+    non_time_outlier_signal = time_outliers(BRV_data_intermediate, target_adc, breaths, plot_enabled=plot_enabled)
+    non_amplitude_outlier_signal = amplitude_outliers(BRV_data_intermediate, target_adc, breaths, plot_enabled=plot_enabled)
+    remove_outliers_and_remake_signal(
+        target_adc, 
+        non_time_outlier_signal, 
+        non_amplitude_outlier_signal, 
+        BRV_data_intermediate,
+        BRV_data_clean,
+        plot_enabled=plot_enabled)
+    return BRV_data_clean
