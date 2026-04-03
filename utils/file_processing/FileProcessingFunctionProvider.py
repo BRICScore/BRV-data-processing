@@ -17,7 +17,7 @@ class FileProcessingFunctionProvider:
         return
 
     def __init__(self):
-        self.processing_map: dict [str, Callable[[MeasurementData, TextIO], None]] = {"raw" : self.__processing_raw, "clean": self.__processing_clean, "feature": self.__processing_feature}
+        self.processing_map: dict [str, Callable[[MeasurementData, TextIO], None]] = {"raw" : self.__processing_raw, "clean": self.__processing_clean, "features": self.__processing_feature}
     
     def provide_function(self,target: MeasurementType) -> Callable[[MeasurementData, TextIO], None]:
         return self.processing_map[target]
