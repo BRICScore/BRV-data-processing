@@ -107,10 +107,11 @@ def resample_adc_data_and_timestamps(data, timestamps, target_adc, plot_enabled=
     signal_duration = timestamps[-1] - timestamps[0]
     resampled_node_count = int(signal_duration // 100)
     print(f"Signal duration: {signal_duration} ms, resampled_node_count: {resampled_node_count}")
-    resampled_data = [np.array([]) for _ in range(ADC_COUNT)]
     resampled_timestamps = resample_data(timestamps, resampled_node_count)
-    for i in range(ADC_COUNT):
-        resampled_data[i] = resample_data(data[i], resampled_node_count)
+    resampled_data = np.vstack([
+        resample_data(data[i], resampled_node_count)
+        for i in range(ADC_COUNT)
+    ])
 
     if plot_enabled:
         plt.plot(timestamps, data[target_adc], label='Cleaned Signal', color='blue')
