@@ -13,6 +13,20 @@ RESULTS_PATH = './results'
 
 
 def parse_results_line(line):
+    """Used to convert a json-coded string into a usable list vector
+
+    Parameters
+    ----------
+    line : string(json-shaped)
+
+    Returns
+    -------
+        feature_vector: list with all entries stripped off json keys
+
+    Side Effects
+    ------------
+        This function has no side effects.
+    """
     feature_vector = []
     for key in line:
         if isinstance(line[key], list):
@@ -23,10 +37,29 @@ def parse_results_line(line):
     return feature_vector
 
 def load_measurement_data(measurement_data): # create dummy data before pipeline is integrated TODO
+    """
+    This function is used as a placeholder for filling measurement data
+    if, for example, you want to test the feature extraction function without calling
+    the entire pipeline
+
+    Parameters
+    ----------
+    measurement_data : BRVMeasurementData | None
+        this argument is None in testing environment
+
+    Returns
+    -------
+    measurement_data : BRVMeasurementData
+        it is always filled either with existing data or dummy data.
+
+    Side Effects
+    ------------
+        This function loads dummy data if no measurement data was provided.
+    """
     if measurement_data:
         return measurement_data
     else:
-        bd = BioData(person_id="198111", age=20, gender="female", health="healthy", condition="regular",
+        bd = BioData(person_id="111111", age=67, gender="female", health="healthy", condition="regular",
                      weight=69, height=165)
         labels = MeasurementLabels(activity="sit", person_data=bd)
         metadata = MeasurementMetadata(_id="1234567890", timestamp=2137420, duration_ms=1_800_000,
@@ -39,7 +72,25 @@ def load_measurement_data(measurement_data): # create dummy data before pipeline
 
 def extract_features(measurement_data=None):
     """
+    This function is responsible for delivering BRVDataFeatures to
+    its parent class MeasurementData **<-TODO** by loading the contents of
+    segments and calling feature extraction on them.
 
+    It is meant to be callable as a step of the final pipeline.
+
+    Parameters
+    ----------
+    measurement_data : BRVMeasurementData | None
+        this argument is None in testing environment
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        This function stores appropriate data in measurement_data.BRVDataFeatures TODO
+        and in ***extracted_features.jsonl*** file.
     """
 
     file = None
