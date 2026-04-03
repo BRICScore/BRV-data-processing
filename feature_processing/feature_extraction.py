@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from data_containers import *
 from config import *
+from mpl_toolkits.mplot3d import Axes3D
 
 # Class used to pass measurement calculated parameters locally
 # It is just used in current file, locally
@@ -364,10 +365,10 @@ def calculate_breathing_phases(signal_data):
     NPtimestamps = np.array(signal.timestamps)
     number_of_breaths = len(signal_data.breath_peaks)
     for i in range(number_of_breaths-1):
-        phases_values[0] += NPtimestamps[signal_data.breath_peak_indices[i]] - NPtimestamps[signal_data.inhale_point_indices[i]]
-        phases_values[1] += NPtimestamps[signal_data.exhale_point_indices[i]] - NPtimestamps[signal_data.breath_peak_indices[i]]
-        phases_values[2] += NPtimestamps[signal_data.breath_minimum_indices[i]] - NPtimestamps[signal_data.exhale_point_indices[i]]
-        phases_values[3] += NPtimestamps[signal_data.breath_end_point_indices[i]] - NPtimestamps[signal_data.breath_minimum_indices[i]]
+        phases_values[0] += float(NPtimestamps[signal_data.breath_peak_indices[i]] - NPtimestamps[signal_data.inhale_point_indices[i]])
+        phases_values[1] += float(NPtimestamps[signal_data.exhale_point_indices[i]] - NPtimestamps[signal_data.breath_peak_indices[i]])
+        phases_values[2] += float(NPtimestamps[signal_data.breath_minimum_indices[i]] - NPtimestamps[signal_data.exhale_point_indices[i]])
+        phases_values[3] += float(NPtimestamps[signal_data.breath_end_point_indices[i]] - NPtimestamps[signal_data.breath_minimum_indices[i]])
         # until outliers are not dealt with
     try:
         phases_values[0] /= number_of_breaths
@@ -420,7 +421,7 @@ def calculate_respiratory_tract(signal_data):
     # print(z)
 
     fig = plt.figure()
-    ax = plt.axes(projection='3d')
+    ax = Axes3D(plt.axes(projection='3d'))
     ax.plot_surface(x, y, z, cmap='viridis', edgecolor='green')
     ax.set_title('Surface Plot')
     ax.set_xlabel("Nr pasa")
