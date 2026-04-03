@@ -220,8 +220,12 @@ def process_raw_file(input_file: str, plot_enabled: bool = False):
             mean_voltage = np.mean(adc_normalized_data[i])
             adc_normalized_data[i] -= mean_voltage
 
+    np_adc_normalized_data = np.vstack(
+        adc_normalized_data
+    )
+
     BRV_data_intermediate.timestamps = timestamps
-    BRV_data_intermediate.adc_normalized_data = adc_normalized_data
+    BRV_data_intermediate.adc_normalized_data = np_adc_normalized_data
     breath_separation(BRV_data_intermediate, TARGET_ADC, plot_enabled=plot_enabled)
     return BRV_data_intermediate
 
@@ -239,7 +243,6 @@ def parser_setup():
 
     return parser
 
-#TODO: fix plot handling
 def main():
     parser = parser_setup()
     args = parser.parse_args()
@@ -250,6 +253,17 @@ def main():
     BRV_data_intermediate = process_raw_file(input_file, plot_enabled=plot_enabled)
     BRV_data_clean = outlier_detection(BRV_data_intermediate, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
     split_data_into_segments(input_file, BRV_data_clean)
+
+    """
+    BRV_measurement_data = poprawna iniclajizacja PUSTEGO obiektu MeasurementData
+    BRV_measurement_data.BRV_data_intermediate = process_raw_file(input_file, plot_enabled=plot_enabled)
+    BRV_measurement_data.BRV_data_clean = outlier_detection(BRV_measurement_data.BRV_data_intermediate, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
+    split_data_into_segments(input_file, BRV_measurement_data.BRV_data_clean)
+    feature_extraction(BRV_measurement_data, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
+    remove_data_segments(input_file)
+    input_measurement_metadata() -> ostatecznie wypełniamy measurement_metadata i chyba też measurement_data przed uploadem
+    upload_measurement()
+    """
 
 if __name__ == "__main__":
     main()

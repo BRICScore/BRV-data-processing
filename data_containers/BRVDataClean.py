@@ -1,8 +1,6 @@
 from dataclasses import dataclass
-from typing import Any
-from numpy import float64, int64
+from numpy import float64
 from numpy.typing import NDArray
-
 
 @dataclass
 class BRVDataClean:
@@ -10,4 +8,4 @@ class BRVDataClean:
         pass
 
     timestamps: NDArray[float64]
-    adc_data: list[NDArray[Any]]
+    adc_data: NDArray[float64]
