@@ -13,6 +13,22 @@ class FeatureExtractionData:
 
 
 def plot_data(input_file, signal_data, avg_breath_depth):
+    """
+    plot the clean data
+    Parameters
+    ----------
+    input_file : str - path to file
+    signal_data : FeatureExtractionData
+    avg_breath_depth : float - to plot a line
+
+    Returns
+    -------
+        None
+
+    Side Effects
+    ------------
+        Plot appears
+    """
     signal = signal_data.clean_data
     plt.figure(figsize=(15, 10))
     plt.plot(signal.timestamps, signal.adc_data[0], label='ADC1')
@@ -37,8 +53,7 @@ def count_breaths(signal_data):
 
     Parameters
     ----------
-    adc_data : ADC_Data
-        Data for current input file
+    signal_data : FeatureExtractionData - from current input file
 
     Returns
     -------
@@ -46,7 +61,7 @@ def count_breaths(signal_data):
 
     Side Effects
     ------------
-        Sets the value in adc_data.breath_count
+        Sets the value in signal_data.breath_count
     """
     breath_counters = []
     for i in range(ADC_COUNT):
@@ -63,7 +78,7 @@ def calculate_average_breath_depth(signal_data, target_adc=TARGET_ADC):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -73,7 +88,7 @@ def calculate_average_breath_depth(signal_data, target_adc=TARGET_ADC):
     
     Side Effects
     ------------
-        Creates breath_peaks and their indices in adc_data for the segment.
+        Creates breath_peaks and their indices in signal_data for the segment.
     
     """
     min_spread_of_peaks = MIN_DISTANCE    # 10 Hz means the highest acceptable frequency of breaths is 1 per second (value/frequency)
@@ -103,7 +118,7 @@ def calculate_breathing_tract(signal_data):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -113,7 +128,7 @@ def calculate_breathing_tract(signal_data):
     
     Side Effects
     ------------
-        This function overrides the adc_data.breath_peaks and adc_data.breath_peak_indices
+        This function overrides the signal_data.breath_peaks and signal_data.breath_peak_indices
     
     """
     belt_share = np.zeros(shape=(ADC_COUNT))
@@ -136,7 +151,7 @@ def detect_ep_end(signal_data):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -145,8 +160,8 @@ def detect_ep_end(signal_data):
     
     Side Effects
     ------------
-        This function registers the points in adc_data.breath_end_points
-        and adc_data.breath_end_point_indices
+        This function registers the points in signal_data.breath_end_points
+        and signal_data.breath_end_point_indices
     
     """
     signal = signal_data.clean_data
@@ -233,7 +248,7 @@ def detect_exhale(signal_data):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -242,8 +257,8 @@ def detect_exhale(signal_data):
     
     Side Effects
     ------------
-        This function registers the points in adc_data.exhale_points
-        and adc_data.exhale_point_indices
+        This function registers the points in signal_data.exhale_points
+        and signal_data.exhale_point_indices
     
     """
     signal = signal_data.clean_data
@@ -291,7 +306,7 @@ def detect_inhale(signal_data):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -300,8 +315,8 @@ def detect_inhale(signal_data):
     
     Side Effects
     ------------
-        This function registers the points in adc_data.inhale_points
-        and adc_data.inhale_point_indices
+        This function registers the points in signal_data.inhale_points
+        and signal_data.inhale_point_indices
     
     """
     signal = signal_data.clean_data.adc_data[TARGET_ADC]
@@ -342,7 +357,7 @@ def calculate_breathing_phases(signal_data):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -395,16 +410,20 @@ def display_calculated_breath_phases(signal_data):
 
 def calculate_respiratory_tract(signal_data):
     """
-    This function is responsible for extracting the values for
-    representation of the feature in the name using RMS
+    This function showcases breath on a 3d plot
 
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
     -------
+        None
+    
+    Side effects
+    ------------
+        This displays a plot for every breath in a segment
 
     """
 
@@ -435,9 +454,10 @@ def calculate_breath_length_variability(signal_data):
     The extent of variability between successive breaths was calculated as the
     root mean square of successive differences (RMSSD) over consecutive breaths (short-term variability, Eq. 2).
     A quantitative time series analysis shows the overall degree of variability or “quantitative variability”.
+
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
 
     Returns
@@ -468,7 +488,7 @@ def calculate_breath_amplitude_variability(signal_data):
 
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
 
     Returns
     -------
@@ -487,7 +507,7 @@ def calculate_breath_shape(signal_data, target=TARGET_ADC):
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
     
     Returns
@@ -521,6 +541,19 @@ def calculate_breath_shape(signal_data, target=TARGET_ADC):
 
 def display_specgram(signal_data, target=TARGET_ADC, amplitude_resolution=10):
     """
+    This function displays all breaths in a segment on a 2d heatmap : AKA specgram
+
+    Parameters
+    ----------
+        signal_data : FeatureExtractionData
+    
+    Returns
+    -------
+        None
+    
+    Side effects
+    ------------
+        displays heatmap
     """
     signal = signal_data.clean_data
     segment_data = []
@@ -550,7 +583,24 @@ def display_specgram(signal_data, target=TARGET_ADC, amplitude_resolution=10):
     plt.show()
     print(heat_array[0])
         
-def write_features_to_file(features, measurement_data, input_file="temp.jsonl"):
+def write_features_to_file(features, measurement_data):
+    """
+    This function writes features from the parameter into **extractred_features.jsonl** file.
+    It also stores the features with appropriate labels taken from measurement_data labels.
+
+    Parameters
+    ----------
+        features : dictionary containing feature names as keys and values
+        measurement_data : MeasurementData from which labels are taken
+    
+    Returns
+    -------
+        None
+    
+    Side effects
+    ------------
+        Appends at the end of **extracted_features.jsonl** file when called
+    """
     with open(f"./features/extracted_features.jsonl", 'a') as o_f:
         o_f.write("{")
 
@@ -567,11 +617,11 @@ def write_features_to_file(features, measurement_data, input_file="temp.jsonl"):
 def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     """
     This function extracts all implemented features from the segment passed 
-    and prints them in "extracted_features.jsonl"
+    and calls write_features_to_file
     
     Parameters
     ----------
-    adc_data : ADC_Data
+    signal_data : FeatureExtractionData
         Data for current input file
     input_file : 
         name of the file(segment) with features being extracted
@@ -621,7 +671,7 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if False:
         plot_data(input_file, signal_data, avg_breath_depth)
-    write_features_to_file(features=features, measurement_data=measure_data, input_file=input_file)
+    write_features_to_file(features=features, measurement_data=measure_data)
 
     if False:
         plt.figure(figsize=(8,6))
