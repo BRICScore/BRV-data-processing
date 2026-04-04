@@ -4,6 +4,8 @@ from pathlib import Path
 
 @dataclass
 class MeasurementMetadata:
+    def __init__(self) -> None:
+        pass
     _id: str
     timestamp: float
     duration_ms: int

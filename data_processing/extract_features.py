@@ -6,7 +6,8 @@ sys.path.append("utils")
 
 from feature_extraction import *
 from config import *
-from data_containers import *
+from data_containers.MeasurementMetadata import MeasurementMetadata
+from data_containers.MeasurementData import MeasurementData
 from pathlib import Path
 
 RESULTS_PATH = './results'
@@ -62,11 +63,23 @@ def load_measurement_data(measurement_data): # create dummy data before pipeline
         bd = BioData(person_id="111111", age=67, gender="female", health="healthy", condition="regular",
                      weight=69, height=165)
         labels = MeasurementLabels(activity="sit", person_data=bd)
-        metadata = MeasurementMetadata(_id="1234567890", timestamp=2137420, duration_ms=1_800_000,
-                                       filepath_raw=Path("./bruh"), filepath_clean=Path("./essa"), filepath_features=Path("./frfr"),
-                                       labels=labels)
+        metadata = MeasurementMetadata()
+        metadata._id = "1234567890"
+        metadata.timestamp = 2137420
+        metadata.duration_ms = 1_800_000
+        metadata.filepath_raw = Path("./bruh")
+        metadata.filepath_clean = Path("./essa")
+        metadata.filepath_features = Path("./frfr")
+        metadata.labels = labels
+        # metadata = MeasurementMetadata(_id="1234567890", timestamp=2137420, duration_ms=1_800_000,
+        #                                filepath_raw=Path("./bruh"), filepath_clean=Path("./essa"), filepath_features=Path("./frfr"),
+        #                                labels=labels)
         clean = BRVDataClean()
-        measure_data = MeasurementData(metadata=metadata, data_clean=clean, data_features=BRVDataFeatures())
+        measure_data = MeasurementData()
+        measure_data.metadata = metadata
+        measure_data.data_clean = clean
+        measure_data.data_features = BRVDataFeatures()
+        # measure_data = MeasurementData(metadata=metadata, data_clean=clean, data_features=BRVDataFeatures())
         return measure_data
 
 
@@ -94,13 +107,16 @@ def extract_features(measurement_data=None):
     """
 
     file = None
-    with open("features/extracted_features.jsonl", "w"):
-        pass
+    
     with os.scandir(RESULTS_PATH) as es:
         for e in es:
             features = []
 
             measure_data = load_measurement_data(measurement_data=measurement_data)
+            features_filename = str(measure_data.metadata.filepath_clean)
+            temp = features_filename.split("\\")[-1]
+            with open(f"./features/{"features_"+temp}", "w"):
+                pass
             #measure_data.data_clean = BRVDataClean()
             # measure_data.data_features = BRVDataFeatures()
             # measure_data.metadata = MeasurementMetadata()
@@ -116,11 +132,10 @@ def extract_features(measurement_data=None):
                         if f_line != '': # last newline produces empty string
                             feature_vector = parse_results_line(json.loads(f_line))
                             features.append(feature_vector)
-                    print(e.name)
                 NPFeatures = np.array(features)
                 measure_data.data_clean.adc_data = np.transpose(NPFeatures[:, 1:])
                 measure_data.data_clean.timestamps = np.transpose(NPFeatures[:, 0])
                 basic_feature_extraction(measure_data=measure_data, input_file=e.name)
 
 # to comment out when pipeline comes TODO
-extract_features()
+# extract_features()
