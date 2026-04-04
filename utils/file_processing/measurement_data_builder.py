@@ -1,6 +1,6 @@
 from brics_types import MeasurementType
 from data_containers import MeasurementData, MeasurementMetadata
-from .FileProcessingFunctionProvider import FileProcessingFunctionProvider
+from .file_processing_function_provider import FileProcessingFunctionProvider
 from pathlib import Path
 from typing import Any, TextIO
 import json

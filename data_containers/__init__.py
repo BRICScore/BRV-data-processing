@@ -1,10 +1,10 @@
 from .ADC_data import ADCdata
-from .BioData import BioData
-from .BRVDataClean import BRVDataClean
-from .BRVDataFeatures import BRVDataFeatures
-from .BRVDataIntermediate import BRVDataIntermediate
-from .MeasurementData import MeasurementData
-from .MeasurementLabels import MeasurementLabels
-from .MeasurementMetadata import MeasurementMetadata
+from .bio_data import BioData
+from .brv_data_clean import BRVDataClean
+from .brv_data_features import BRVDataFeatures
+from .brv_data_intermediate import BRVDataIntermediate
+from .measurement_data import MeasurementData
+from .measurement_labels import MeasurementLabels
+from .measurement_metadata import MeasurementMetadata
 
 __all__ = ["ADCdata", "BioData", "BRVDataClean", "BRVDataFeatures", "BRVDataIntermediate", "MeasurementData", "MeasurementLabels", "MeasurementMetadata"]
