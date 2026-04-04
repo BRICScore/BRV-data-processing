@@ -9,6 +9,17 @@ from mpl_toolkits.mplot3d import Axes3D
 class FeatureExtractionData:
     clean_data: BRVDataClean
     breath_count: int
+    breath_peaks: list[float]
+    breath_peak_indices: list[int]
+    breath_end_points: list[float]
+    breath_end_point_indices: list[int]
+    breath_minima: list[float]
+    breath_minimum_indices: list[int]
+    exhale_points: list[float]
+    exhale_point_indices: list[int]
+    inhale_points: list[float]
+    inhale_point_indices: list[int]
+
 
 
 
@@ -408,7 +419,7 @@ def display_calculated_breath_phases(signal_data):
     plt.ylabel("signal deviation from average value")
     plt.show()
 
-def calculate_respiratory_tract(signal_data):
+def display_respiratory_tract(signal_data): #TODO
     """
     This function showcases breath on a 3d plot
 
@@ -423,7 +434,7 @@ def calculate_respiratory_tract(signal_data):
     
     Side effects
     ------------
-        This displays a plot for every breath in a segment
+        This displays a signle plot for interpolated breaths in a segment
 
     """
 
@@ -438,9 +449,11 @@ def calculate_respiratory_tract(signal_data):
         z.append([a3*p**3 + a2*p**2 + a1*p + a0 for p in range(1,to_gen+1)])
     z = np.array(z).T
     # print(z)
+    import typing
 
     fig = plt.figure()
-    ax = Axes3D(plt.axes(projection='3d'))
+    ax = plt.axes(projection='3d')
+    ax = typing.cast(Axes3D, ax)
     ax.plot_surface(x, y, z, cmap='viridis', edgecolor='green')
     ax.set_title('Surface Plot')
     ax.set_xlabel("Nr pasa")
@@ -654,15 +667,15 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
         print(f"{input_file} discarded for inadequate phase lengths {phases_avg_values}")
         return
     if False:
-        display_calculated_breath_phases(adc_data) # do not move it takes values from two function calls above
+        display_calculated_breath_phases(signal_data) # do not move it takes values from two function calls above
     c = [float(x) for x in calculate_breath_shape(signal_data)]
     features["breath_shape"] = c
     blv = calculate_breath_length_variability(signal_data=signal_data)
     features["breath_length_variability"] = blv
     bav = calculate_breath_amplitude_variability(signal_data=signal_data)
     features["breath_amplitude_variability"] = bav
-    # calculate_respiratory_tract(adc_data=adc_data)
-    # display_specgram(adc_data=adc_data, target=TARGET_ADC, amplitude_resolution=15)
+    display_respiratory_tract(signal_data=signal_data)
+    # display_specgram(signal_data=signal_data, target=TARGET_ADC, amplitude_resolution=15)
     belt_share, belt_share_std = calculate_breathing_tract(signal_data=signal_data)
     features["belt_share"] = [float(x) for x in belt_share]
     features["belt_share_std"] = [float(x) for x in belt_share_std]
