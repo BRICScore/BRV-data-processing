@@ -1,7 +1,11 @@
-from numpy import ndarray, float64
 from dataclasses import dataclass
+from numpy import float64
+from numpy.typing import NDArray
 
 @dataclass
 class BRVDataClean:
-    timestamps: ndarray[tuple[int,], float64]
-    adc_data: ndarray[tuple[int, 5], float64]
+    def __init__(self):
+        pass
+
+    timestamps: NDArray[float64]
+    adc_data: NDArray[float64]
