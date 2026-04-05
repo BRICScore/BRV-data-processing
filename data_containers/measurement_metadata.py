@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .MeasurementLabels import MeasurementLabels
+from .measurement_labels import MeasurementLabels
 from pathlib import Path
 
 @dataclass

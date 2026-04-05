@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from brics_types import ActivityType
-from .BioData import BioData
+from .bio_data import BioData
 
 @dataclass
 class MeasurementLabels:
