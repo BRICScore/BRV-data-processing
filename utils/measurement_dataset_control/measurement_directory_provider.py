@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import shutil
 from config import MEASUREMENT_ZIP_PATH
-from measurement_type import MeasurementType
+from brics_types import MeasurementType
 
 
 class MeasurementDirectoryProvider:

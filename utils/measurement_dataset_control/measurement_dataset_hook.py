@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 import os
 from config import MEASUREMENT_ZIP_PATH
-import MeasurementDirectoryProvider as mdp
+import measurement_directory_provider as mdp
 
 class MeasurementDatasetHook:
     """
