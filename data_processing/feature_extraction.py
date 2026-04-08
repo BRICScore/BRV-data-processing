@@ -596,7 +596,7 @@ def display_specgram(signal_data, target=TARGET_ADC, amplitude_resolution=10):
     plt.show()
     print(heat_array[0])
         
-def write_features_to_file(features, measurement_data):
+def write_features_to_file(features, measurement_data, input_file):
     """
     This function writes features from the parameter into **extractred_features.jsonl** file.
     It also stores the features with appropriate labels taken from measurement_data labels.
@@ -614,17 +614,19 @@ def write_features_to_file(features, measurement_data):
     ------------
         Appends at the end of **extracted_features.jsonl** file when called
     """
-    with open(f"./features/extracted_features.jsonl", 'a') as o_f:
+    features_filename = str(measurement_data.metadata.filepath_clean)
+    temp = features_filename.split("\\")[-1]
+    with open(f"./features/{"features_"+temp}", "w") as o_f:
         o_f.write("{")
 
         for key in features:
             o_f.write(f"\"{key}\": {list(features[key]) if type(features[key]) == np.ndarray else features[key]}")
             o_f.write(", ")
-        labels = measurement_data.metadata.labels
-        activity = labels.activity
-        person = labels.person_data.person_id
+        #labels = measurement_data.metadata.labels
+        #activity = labels.activity
+        #person = labels.person_data.person_id
         # TODO change labels to only print as metadata at the start of the file - pipeline
-        o_f.write(f"\"person\": \"{person}_{activity}\"")
+        o_f.write(f"\"person\": \"{"person1"}_{"activity1"}\"")
         o_f.write("}\n")
 
 def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
@@ -674,7 +676,7 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     features["breath_length_variability"] = blv
     bav = calculate_breath_amplitude_variability(signal_data=signal_data)
     features["breath_amplitude_variability"] = bav
-    display_respiratory_tract(signal_data=signal_data)
+    # display_respiratory_tract(signal_data=signal_data)
     # display_specgram(signal_data=signal_data, target=TARGET_ADC, amplitude_resolution=15)
     belt_share, belt_share_std = calculate_breathing_tract(signal_data=signal_data)
     features["belt_share"] = [float(x) for x in belt_share]
@@ -684,7 +686,7 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if False:
         plot_data(input_file, signal_data, avg_breath_depth)
-    write_features_to_file(features=features, measurement_data=measure_data)
+    write_features_to_file(features=features, measurement_data=measure_data, input_file=input_file)
 
     if False:
         plt.figure(figsize=(8,6))

@@ -494,7 +494,7 @@ def plot_mode_breath_on_file(mode_breath, target_adc = TARGET_ADC):
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f'./results/mode_breath_{file_name.replace(".jsonl", ".png")}')
+    # plt.savefig(f'./results/mode_breath_{file_name.replace(".jsonl", ".png")}')
     plt.show()
 
 def group_plot_mode_breaths(people_profiles):
@@ -521,7 +521,7 @@ def group_plot_mode_breaths(people_profiles):
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f'./results/mode_breaths_all_people.png')
+    # plt.savefig(f'./results/mode_breaths_all_people.png')
     plt.show()
 
 def plot_profiles(profiles):

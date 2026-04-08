@@ -12,7 +12,7 @@ import pathlib
 from matplotlib import patches
 import dotenv
 import seaborn as sns
-import pathlib
+from pathlib import Path
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
