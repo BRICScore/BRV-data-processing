@@ -1,10 +1,11 @@
-from dataclasses import dataclass
-from numpy import float64, int64, ndarray
+from dataclasses import dataclass, field
+from numpy import float64, int64, array
+from numpy.typing import NDArray
 
 @dataclass
 class BRVDataIntermediate: 
     
-    timestamps:             ndarray[tuple[int,], int64] = None
-    adc_normalized_data:    ndarray[tuple[int,5],float64] = None
-    signal_minima:          ndarray[tuple[int,], int64] = None
-    signal_maxima:          ndarray[tuple[int,], int64] = None
+    timestamps:             NDArray[int64] = field(default_factory=lambda: array([], dtype=int64))
+    adc_normalized_data:    NDArray[float64] = field(default_factory=lambda: array([], dtype=float64))
+    signal_minima:          NDArray[float64] = field(default_factory=lambda: array([], dtype=float64))
+    signal_maxima:          NDArray[float64] = field(default_factory=lambda: array([], dtype=float64))

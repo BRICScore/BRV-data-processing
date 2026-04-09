@@ -1,7 +1,9 @@
-from dataclasses import dataclass
-from numpy import float64, ndarray, int64
+from dataclasses import dataclass, field
+from numpy import array, float64, int64
+from numpy.typing import NDArray
+from typing import Optional
 
 @dataclass
 class BRVDataClean:
-    timestamps:     ndarray[tuple[int,], int64] = None
-    adc_data:       ndarray[tuple[int, 5], float64] = None
+    timestamps:     NDArray[int64] = field(default_factory=lambda: array([], dtype=int64))
+    adc_data:       NDArray[float64] = field(default_factory=lambda: array([], dtype=float64))

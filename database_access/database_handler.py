@@ -34,7 +34,7 @@ class DatabaseHandler:
         retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500,502,503,504])
         adapter = HTTPAdapter(max_retries=retries)
         headers = {"CF-Access-Client-Id": os.getenv("ACCESS_CLIENT_ID"), "CF-Access-Client-Secret": os.getenv("ACCESS_CLIENT_SECRET")}
-        self._session.headers.update(headers)
+        self._session.headers.update(headers) # type: ignore
         self._session.mount("https://", adapter)
 
     def uploadMeasurement(self, filepath_raw: str, filepath_clean: str):
