@@ -9,6 +9,7 @@ sys.path.append("data_containers")
 from outlier_detection import *
 
 from data_containers.BRVDataIntermediate import BRVDataIntermediate
+from data_containers.MeasurementData import MeasurementData
 from config import *
 
 
@@ -108,7 +109,7 @@ def parse_adc_data_line(line: str):
     adc_outputs = [extract_adc_data(4 + i * 3) for i in range(ADC_COUNT)]   # 4 - skip timestamp, i*3 - each ADC has 3 bytes of data 
     return ms_timestamp, adc_outputs
 
-def handle_input_data(input_file : str):
+def handle_input_data(input_file : Path):
     """
         Read raw ADC data from input file, parse it line by line by calling parse_adc_data_line function
         and add a timestamp to the data. Then store the data in adc_data.adc_output_data and adc_data.adc_normalized_data
@@ -116,8 +117,8 @@ def handle_input_data(input_file : str):
 
         Parameters
         ----------
-        input_file: str
-            The name of the raw input file containing the ADC data
+        input_file: Path
+            The path to the raw input file containing the ADC data
 
         Returns
         -------
@@ -136,7 +137,7 @@ def handle_input_data(input_file : str):
     first_timestamp = None
     timestamps = np.array([])
     adc_output_data = [np.array([]) for _ in range(ADC_COUNT)]
-    with open(f"./data/{input_file}", 'r') as i_f:
+    with open(f"data/{input_file}", 'r') as i_f:
         for line in i_f:
             ms_timestamp, adc_outputs = parse_adc_data_line(line)
             if first_timestamp is None:
@@ -146,50 +147,7 @@ def handle_input_data(input_file : str):
                 adc_output_data[i] = np.append(adc_output_data[i], round(adc_to_voltage(v), 10))
     return timestamps, adc_output_data
 
-def split_data_into_segments(input_file : str, BRV_data_clean : BRVDataClean):
-    """
-        Split the resampled ADC data into segments that contain values from a specific time window,
-        and save each segment into a separate JSONL file.
-
-        Parameters
-        ----------
-        input_file: str
-            The name of the raw input file containing the ADC data, the name consists of labels
-            that are used to create the output file names.
-        BRV_data_clean : BRVDataClean
-            The BRVDataClean object containing the cleaned and resampled ADC data and timestamps further
-            defined in project's DTP.
-
-        Returns
-        -------
-        None          
-        
-        Side Effects
-        ------------
-        This function creates multiple JSONL files in the "./results" directory, each containing a segment of the ADC data.
-    """
-
-    segment_index = 0
-    total_segments = int(np.ceil(BRV_data_clean.timestamps[-1] / SEGMENT_LENGTH_MS))
-    filename = input_file.split("_")
-    time = filename[1]
-    person = filename[2]
-    condition = filename[3]
-    no_of_sample = filename[4]
-
-    for segment_index in range(total_segments):
-        segment_start = segment_index * SEGMENT_LENGTH_MS
-        segment_end = segment_start + SEGMENT_LENGTH_MS
-        with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split(".")[0]}.jsonl", 'w') as o_f:
-            for i in range(len(BRV_data_clean.timestamps)):
-                if segment_start <= BRV_data_clean.timestamps[i] < segment_end:
-                    record = {
-                        "timestamp": int(BRV_data_clean.timestamps[i]),
-                        "adc_outputs": [BRV_data_clean.adc_data[a][i] for a in range(ADC_COUNT)]
-                    }
-                    o_f.write(json.dumps(record) + "\n")
-
-def process_raw_file(input_file: str, plot_enabled: bool = False):
+def process_raw_file(input_file: Path, plot_enabled: bool = False):
     """
         This function serves as the entry point for processing the raw ADC data files.
         It organizes and calls the necessary functions to read, parse, normalize, separate breaths,
@@ -197,8 +155,8 @@ def process_raw_file(input_file: str, plot_enabled: bool = False):
 
         Parameters
         ----------
-        input_file: str
-            The name of the raw input file containing the ADC data
+        input_file: Path
+            The path to the raw input file containing the ADC data
         plot_enabled : bool
             A flag that turns plotting on and off
 
@@ -229,41 +187,9 @@ def process_raw_file(input_file: str, plot_enabled: bool = False):
     breath_separation(BRV_data_intermediate, TARGET_ADC, plot_enabled=plot_enabled)
     return BRV_data_intermediate
 
-def parser_setup():
-    parser = argparse.ArgumentParser(description="Data parser and feature extractor")
-
-    parser.add_argument('input_file', type=str,
-                    help='A required argument containing input file for the programme')
-
-    parser.add_argument('--plot', action='store_true',
-                    help='A boolean switch for plotting transformations')
-    
-    parser.add_argument('--debugplot', action='store_true',
-                    help='A boolean switch for plotting while debugging')
-
-    return parser
-
-def main():
-    parser = parser_setup()
-    args = parser.parse_args()
-    input_file = args.input_file
-    plot_enabled = args.plot
-    debug_plot = args.debugplot
+def initial_data_processing(BRV_measurement_data: MeasurementData, target_adc: int = TARGET_ADC, plot_enabled: bool = False):
+    input_file = BRV_measurement_data.metadata.filepath_raw
 
     BRV_data_intermediate = process_raw_file(input_file, plot_enabled=plot_enabled)
-    BRV_data_clean = outlier_detection(BRV_data_intermediate, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
-    split_data_into_segments(input_file, BRV_data_clean)
-
-    """
-    BRV_measurement_data = poprawna iniclajizacja PUSTEGO obiektu MeasurementData
-    BRV_measurement_data.BRV_data_intermediate = process_raw_file(input_file, plot_enabled=plot_enabled)
-    BRV_measurement_data.BRV_data_clean = outlier_detection(BRV_measurement_data.BRV_data_intermediate, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
-    split_data_into_segments(input_file, BRV_measurement_data.BRV_data_clean)
-    feature_extraction(BRV_measurement_data, target_adc=TARGET_ADC, plot_enabled=plot_enabled)
-    remove_data_segments(input_file)
-    input_measurement_metadata() -> ostatecznie wypełniamy measurement_metadata i chyba też measurement_data przed uploadem
-    upload_measurement()
-    """
-
-if __name__ == "__main__":
-    main()
+    BRV_measurement_data.data_clean = outlier_detection(BRV_data_intermediate, target_adc=target_adc, plot_enabled=plot_enabled)
+    # split_data_into_segments(input_file, BRV_measurement_data.data_clean)

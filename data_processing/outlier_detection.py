@@ -336,7 +336,8 @@ def remove_outliers_and_remake_signal(
     BRV_data_clean.adc_data, BRV_data_clean.timestamps = resample_adc_data_and_timestamps(
         nan_adjusted_data,
         nan_adjusted_timestamps,
-        target_adc, True
+        target_adc,
+        plot_enabled=plot_enabled
     )
     
 def outlier_detection(BRV_data_intermediate, target_adc, plot_enabled=False):
