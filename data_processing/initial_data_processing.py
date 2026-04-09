@@ -8,8 +8,8 @@ sys.path.append("data_containers")
 
 from outlier_detection import *
 
-from data_containers.BRVDataIntermediate import BRVDataIntermediate
-from data_containers.MeasurementData import MeasurementData
+from data_containers import BRVDataIntermediate
+from data_containers import MeasurementData
 from config import *
 
 

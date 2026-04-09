@@ -6,8 +6,8 @@ sys.path.append("utils")
 
 from feature_extraction import *
 from config import *
-from data_containers.MeasurementMetadata import MeasurementMetadata
-from data_containers.MeasurementData import MeasurementData
+from data_containers import MeasurementMetadata
+from data_containers import MeasurementData
 from pathlib import Path
 
 RESULTS_PATH = './results'

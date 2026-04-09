@@ -4,7 +4,7 @@ sys.path.append("utils")
 from config import *
 import argparse
 from data_containers import BRVDataClean
-from data_containers.MeasurementData import MeasurementData, MeasurementMetadata
+from data_containers import MeasurementData, MeasurementMetadata
 from data_processing.initial_data_processing import initial_data_processing
 from extract_features import extract_features
 
