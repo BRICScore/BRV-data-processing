@@ -4,7 +4,7 @@ from .file_processing_function_provider import FileProcessingFunctionProvider
 from pathlib import Path
 from typing import Any, TextIO
 import json
-from config import MEASUREMENT_ZIP_PATH
+from utils.config import MEASUREMENT_ZIP_PATH
 
 class MeasurementDataBuilder:
     """
@@ -24,7 +24,6 @@ class MeasurementDataBuilder:
 
     def __init__(self, measurement_data_container: MeasurementData):
         self.data = measurement_data_container
-        self.provider = FileProcessingFunctionProvider()
 
     def build_data(self, filepath: Path, target: MeasurementType) -> None:
         """
@@ -40,11 +39,11 @@ class MeasurementDataBuilder:
             Returns
                 Nothing
         """
-        func = self.provider.provide_function(target)
+        func = FileProcessingFunctionProvider.provide_function(target)
         with open(filepath, "r") as filehook:
-            if self.__check_for_metadata():
-                self.__consume_metadata()
-                self.__correct_paths()
+            if self.__check_for_metadata(filehook):
+                self.__consume_metadata(filehook)
+                self.__correct_paths(filehook)
             func(self.data, filehook)
             
         return

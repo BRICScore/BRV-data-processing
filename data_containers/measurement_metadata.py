@@ -1,13 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .measurement_labels import MeasurementLabels
 from pathlib import Path
 
 @dataclass
 class MeasurementMetadata:
-    _id: str
-    timestamp: float
-    duration_ms: int
-    filepath_raw: Path
-    filepath_clean: Path
-    filepath_features: Path
-    labels: MeasurementLabels
+    _id:                str = None
+    timestamp:          float = None
+    duration_ms:        int = None
+    filepath_raw:       Path = None
+    filepath_clean:     Path = None
+    filepath_features:  Path = None
+    labels:             MeasurementLabels = field(default_factory=MeasurementLabels)

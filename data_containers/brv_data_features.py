@@ -1,19 +1,15 @@
 from dataclasses import dataclass, field
-from numpy import ndarray
+from numpy import ndarray, float64
 
 @dataclass
 class BRVDataFeatures:
-    def __init__(self):
-        pass
 
-    feature_files: list 
-    feature_colors: list
-    feature_count: list
-    #TODO: define ndarrays and convert lists to ndarrays, if possible
-    features: ndarray
-    features_pca: ndarray
-
-    person_colors: dict # dictionary for colors of data points for different person labels
-    person_indices: dict # dictionary holding arrays of indices in feature data for people
-    person_initials: list # array holding all initials for labels in legend
-    feature_index: int = 0
+    bpm:                            ndarray[tuple[int,], float64] = None
+    avg_breath_depth:               ndarray[tuple[int,], float64] = None
+    avg_breath_depth_std_dev:       ndarray[tuple[int,], float64] = None
+    phases_avg_values:              ndarray[tuple[int, 4], float64] = None
+    breath_shape:                   ndarray[tuple[int, 4], float64] = None
+    breath_length_variability:      ndarray[tuple[int,], float64] = None
+    breath_amplitude_variability:   ndarray[tuple[int,], float64] = None
+    belt_share:                     ndarray[tuple[int, 5], float64] = None
+    belt_share_std:                 ndarray[tuple[int, 5], float64] = None
