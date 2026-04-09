@@ -30,7 +30,7 @@ class MeasurementDatasetHook:
         return self
     
     def __next__(self):
-        if self.index == self.number_of_files:
+        if self.index == self.number_of_files - 1:
             raise StopIteration
         self.index = self.index + 1
         return self.files[self.index]

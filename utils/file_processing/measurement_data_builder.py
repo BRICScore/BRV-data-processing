@@ -110,9 +110,6 @@ class MeasurementDataBuilder:
             Returns
                 Nothing
         """
-        self.data.metadata.filepath_raw = None
-        self.data.metadata.filepath_clean = None
-        self.data.metadata.filepath_features = None
         if ("raw" in filehook.name):
             self.data.metadata.filepath_raw = Path(filehook.name)
         elif ("clean" in filehook.name):

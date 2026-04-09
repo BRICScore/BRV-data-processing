@@ -7,7 +7,7 @@ from numpy import array
 class FileProcessingFunctionProvider:
 
     def __processing_raw(measurement_data: MeasurementData, filehook: TextIO) -> None:
-        #TODO: Copy processing from process_file()
+        # does nothing, is there for future proofing
         return
     
     def __processing_clean(measurement_data: MeasurementData, filehook: TextIO) -> None:
