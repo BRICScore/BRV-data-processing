@@ -1,5 +1,5 @@
 import numpy as np
-from config import *
+from utils.config import *
 
 class ADCdata:
     def __init__(self):
