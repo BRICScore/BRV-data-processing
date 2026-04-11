@@ -54,7 +54,7 @@ class DatabaseHandler:
             Returns
             -------
             none
-            
+
             Side Effects
             ------------
             This function will result in a files being uploaded into the database and creation of a record corresponding to them.
@@ -62,8 +62,8 @@ class DatabaseHandler:
 
         form_data = input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]).__dict__
 
-        with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean:
-            files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean}
+        with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean, open(filepath_features, "rb") as file_features:
+            files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean, "measurement_file_features": file_features}
             r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
         r.raise_for_status()
@@ -109,8 +109,8 @@ class DatabaseHandler:
         weight_min = int(input("Minimum weight in kgs: ").strip() or 0)
         weight_max = int(input("Maximum weight in kgs: ").strip() or 200)
 
-        height_min = int(input("Minimum length in minutes: ").strip() or 0)
-        height_max = int(input("Maximum length in minutes: ").strip() or 250)
+        height_min = int(input("Minimum height in cm: ").strip() or 0)
+        height_max = int(input("Maximum height in cm: ").strip() or 250)
 
         query_data = {
             "person_id": person_id,
