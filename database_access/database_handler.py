@@ -9,6 +9,7 @@ from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 import dotenv
 from input_measurement_metadata import input_measurement_metadata
+from dataclasses import asdict
 
 class DatabaseHandler:
     """
@@ -60,7 +61,9 @@ class DatabaseHandler:
             This function will result in a files being uploaded into the database and creation of a record corresponding to them.
         """
 
-        form_data = input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]).__dict__
+        measurement_metadata_dict = asdict(input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]))
+        
+        form_data = json.loads(json.dumps(measurement_metadata_dict, default=str))
 
         with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean, open(filepath_features, "rb") as file_features:
             files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean, "measurement_file_features": file_features}
