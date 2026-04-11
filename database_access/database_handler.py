@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 import os
 import json
@@ -6,6 +8,7 @@ from pathlib import Path
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 import dotenv
+from input_measurement_metadata import input_measurement_metadata
 
 class DatabaseHandler:
     """
@@ -37,7 +40,7 @@ class DatabaseHandler:
         self._session.headers.update(headers) # type: ignore
         self._session.mount("https://", adapter)
 
-    def uploadMeasurement(self, filepath_raw: str, filepath_clean: str):
+    def uploadMeasurement(self, filepath_raw: str, filepath_clean: str, filepath_features: str):
         """
             Upload measurement files into the database for future use.
 
@@ -56,40 +59,12 @@ class DatabaseHandler:
             ------------
             This function will result in a files being uploaded into the database and creation of a record corresponding to them.
         """
-        
-        form_data = {}
-        #TODO: MOVE UI TO AN APP/WEBPAGE
-        print("Fill measurement metadata:")
-        form_data["person_id"] = str(input("Person ID (currently email): "))
 
-
-        with open(filepath_clean, "rb") as workMeasurementFileHook:
-            jsonlines = workMeasurementFileHook.readlines()
-            jsonlines = jsonlines[::-1]
-            parsed_line = json.loads(jsonlines[0])
-        
-        form_data["duration_ms"] = parsed_line["timestamp"]
-        form_data["timestamp"] = time.time()
-
-        print("Fill in labels for the measurement:")
-
-        labels = {}
-
-        activity = input("Activity: ")
-        labels["activity"] = activity
-
-        age = int(input("Age (from 0 to 100): "))
-        gender = input("Biological gender (male/female): ")
-        health = input("Health condition: ")
-        condition = input("Athletic condition: ")
-
-        labels["bio"] = {"age": age, "gender": gender, "health": health, "condition": condition}
-
-        form_data["labels"] = json.dumps(labels)
+        form_data = input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]).__dict__
 
         with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean:
             files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean}
-            r = self._session.post('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
+            r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
         r.raise_for_status()
         print(r.status_code)
@@ -131,6 +106,12 @@ class DatabaseHandler:
         condition = input("Enter conditions seperated by space or skip or all").strip().split() or None
         health = input("Enter health statuses seperated by space or skip or all").strip().split() or None
 
+        weight_min = int(input("Minimum weight in kgs: ").strip() or 0)
+        weight_max = int(input("Maximum weight in kgs: ").strip() or 200)
+
+        height_min = int(input("Minimum length in minutes: ").strip() or 0)
+        height_max = int(input("Maximum length in minutes: ").strip() or 250)
+
         query_data = {
             "person_id": person_id,
             "length_min": length_min * 60000, #length kept in db in milliseconds
@@ -141,7 +122,11 @@ class DatabaseHandler:
             "gender": gender,
             "activity": activity,
             "condition": condition,
-            "health": health
+            "health": health,
+            "weight_min" : weight_min,
+            "weight_max" : weight_max,
+            "height_min" : height_min,
+            "height_max" : height_max
         }    
         
         r = self._session.get('https://brics-api.electimore.xyz/measurement/download', params=query_data)
