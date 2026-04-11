@@ -100,7 +100,7 @@ class DatabaseHandler:
         age_min = int(input("Minimum age of subject: ").strip() or 0)
         age_max = int(input("Maximum age of subject: ").strip() or 100)
         
-        level = input("Enter acceptable levels (raw/clean) seperated by space or press enter for all").strip().split() or None
+        level = input("Enter acceptable levels (raw/clean/features) seperated by space or press enter for all").strip().split() or None
         gender = input("Enter genders (male/female) seperated by space or skip for all").strip().split() or None
         activity = input("Enter activities seperated by space or skip or all").strip().split() or None
         condition = input("Enter conditions seperated by space or skip or all").strip().split() or None
