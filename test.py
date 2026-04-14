@@ -1,8 +1,0 @@
-from utils.file_processing import MeasurementDataBuilder
-from data_containers import MeasurementData
-
-data = MeasurementData()
-
-mdb = MeasurementDataBuilder(data)
-
-mdb.build_data("PLYK", "TYP")
