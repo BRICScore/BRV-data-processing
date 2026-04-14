@@ -35,6 +35,9 @@ def input_measurement_metadata(filepaths: list[str] = []) -> MeasurementMetadata
         filepath_clean = metadata.filepath_clean
     else:
         filepath_clean = Path(filepaths[1])
+        metadata.filepath_raw = Path(filepaths[0])
+        metadata.filepath_clean = filepath_clean
+        metadata.filepath_features = Path(filepaths[2])
 
 
 

@@ -63,7 +63,7 @@ class DatabaseHandler:
 
         measurement_metadata_dict = asdict(input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]))
         
-        form_data = json.loads(json.dumps(measurement_metadata_dict, default=str))
+        form_data = {"measurement_metadata": json.dumps(measurement_metadata_dict, default=str)}
 
         with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean, open(filepath_features, "rb") as file_features:
             files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean, "measurement_file_features": file_features}
