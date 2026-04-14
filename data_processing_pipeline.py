@@ -7,6 +7,7 @@ from data_containers import BRVDataClean
 from data_containers import MeasurementData, MeasurementMetadata
 from data_processing.initial_data_processing import initial_data_processing
 from extract_features import extract_features
+from database_access.database_handler import DatabaseHandler
 
 def split_data_into_segments(input_file : Path, BRV_data_clean : BRVDataClean):
     """
@@ -69,39 +70,6 @@ def clear_results_folder():
             if result.is_file():
                 os.remove(result.path)
 
-def input_measurement_metadata():
-    info_to_input = []
-    # class MeasurementMetadata:
-    # def __init__(self) -> None:
-    #     pass
-    # _id: str
-    # timestamp: float
-    # duration_ms: int
-    # filepath_raw: Path
-    # filepath_clean: Path
-    # filepath_features: Path
-    # labels: MeasurementLabels
-    
-#     @dataclass
-# class MeasurementLabels:
-#     activity: ActivityType
-#     person_data: BioData
-    for parameter in info_to_input:
-        input_ok = False
-        while not input_ok:
-            pass
-    # @dataclass
-    # class BioData:
-    # person_id: str
-    # age : int
-    # gender : GenderType
-    # health: str
-    # condition: ConditionType
-    # weight: int
-    # height: int
-    pass
-
-
 
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
@@ -129,13 +97,16 @@ def main():
     measurement_metadata.filepath_raw = Path(input_file)
     measurement_data.metadata = measurement_metadata
     
-    input_measurement_metadata()
     initial_data_processing(BRV_measurement_data = measurement_data, target_adc = TARGET_ADC, plot_enabled = plot_enabled)
     measurement_data.metadata.filepath_clean = save_clean_data(measurement_data.data_clean, input_file)
     split_data_into_segments(input_file, measurement_data.data_clean)
     extract_features(measurement_data=measurement_data)
-    # input_measurement_metadata()
-    # upload_measurement()
+
+    db_handler = DatabaseHandler()
+    fr = measurement_data.metadata.filepath_raw
+    fc = measurement_data.metadata.filepath_clean
+    ff = measurement_data.metadata.filepath_features
+    db_handler.uploadMeasurement(filepath_raw=fr.name, filepath_clean=fc.name, filepath_features=ff.name)
     clear_results_folder()
 
 
