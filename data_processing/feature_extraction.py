@@ -617,21 +617,12 @@ def write_features_to_file(features, measurement_data, input_file):
     features_filename = str(measurement_data.metadata.filepath_clean)
     temp = features_filename.split("\\")[-1]
     temp = "features_"+temp
-    with open(f"./features/{temp}", "a") as o_f:
-        # o_f.write("{")
 
-        # for key in features:
-        #     o_f.write(f"\"{key}\": {list(features[key]) if type(features[key]) == np.ndarray else features[key]}")
-        #     o_f.write(", ")
-        # #labels = measurement_data.metadata.labels
-        # #activity = labels.activity
-        # #person = labels.person_data.person_id
-        # # TODO change labels to only print as metadata at the start of the file - pipeline
-        # o_f.write(f"\"person\": \"{"person1"}_{"activity1"}\"")
-        # o_f.write("}\n")
-        o_f.write(json.dumps(features))
+    with open(f"./features/{temp}", "a") as o_f:
+        # print(json.dumps(features))
+        json.dump(features, o_f)
         o_f.write("\n")
-    measurement_data.metadata.filepath_features = Path(temp)
+    measurement_data.metadata.filepath_features = Path(f"./features/{temp}")
 
 def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     """

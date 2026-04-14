@@ -107,19 +107,15 @@ def extract_features(measurement_data=None):
     """
 
     file = None
-    
+    measure_data = load_measurement_data(measurement_data=measurement_data)
+    features_filename = str(measure_data.metadata.filepath_clean)
+    temp = features_filename.split("\\")[-1]
+    with open(f"./features/{"features_"+temp}", "w"):
+        pass
+
     with os.scandir(RESULTS_PATH) as es:
         for e in es:
             features = []
-
-            measure_data = load_measurement_data(measurement_data=measurement_data)
-            features_filename = str(measure_data.metadata.filepath_clean)
-            temp = features_filename.split("\\")[-1]
-            with open(f"./features/{"features_"+temp}", "w"):
-                pass
-            #measure_data.data_clean = BRVDataClean()
-            # measure_data.data_features = BRVDataFeatures()
-            # measure_data.metadata = MeasurementMetadata()
             print(e.name)
             if e.is_file() and e.name.endswith('.jsonl'):
                 feature_vector = []
@@ -137,5 +133,4 @@ def extract_features(measurement_data=None):
                 measure_data.data_clean.timestamps = np.transpose(NPFeatures[:, 0])
                 basic_feature_extraction(measure_data=measure_data, input_file=e.name)
 
-# to comment out when pipeline comes TODO
 # extract_features()

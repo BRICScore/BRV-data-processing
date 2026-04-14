@@ -33,16 +33,16 @@ def split_data_into_segments(input_file : Path, BRV_data_clean : BRVDataClean):
 
     segment_index = 0
     total_segments = int(np.ceil(BRV_data_clean.timestamps[-1] / SEGMENT_LENGTH_MS))
-    filename = str(input_file).split("_")
-    time = filename[1]
-    person = filename[2]
-    condition = filename[3]
-    no_of_sample = filename[4]
+    temp_name = input_file.name
+    temp = temp_name.split('.')
+    temp.pop()
+    filename = ".".join(temp)
+    
 
     for segment_index in range(total_segments):
         segment_start = segment_index * SEGMENT_LENGTH_MS
         segment_end = segment_start + SEGMENT_LENGTH_MS
-        with open(f"./results/clean_{time}_{segment_index}_{person}_{condition}_{no_of_sample.split('.')[0]}.jsonl", 'w') as o_f:
+        with open(f"./results/clean_{filename}_{segment_index}.jsonl", 'w') as o_f:
             for i in range(len(BRV_data_clean.timestamps)):
                 if segment_start <= BRV_data_clean.timestamps[i] < segment_end:
                     record = {
@@ -98,15 +98,19 @@ def main():
     measurement_data.metadata = measurement_metadata
     
     initial_data_processing(BRV_measurement_data = measurement_data, target_adc = TARGET_ADC, plot_enabled = plot_enabled)
+    measurement_metadata.filepath_raw = Path(f"./data/{input_file}")
     measurement_data.metadata.filepath_clean = save_clean_data(measurement_data.data_clean, input_file)
-    split_data_into_segments(input_file, measurement_data.data_clean)
+    split_data_into_segments(Path(input_file), measurement_data.data_clean)
     extract_features(measurement_data=measurement_data)
 
     db_handler = DatabaseHandler()
     fr = measurement_data.metadata.filepath_raw
     fc = measurement_data.metadata.filepath_clean
     ff = measurement_data.metadata.filepath_features
-    db_handler.uploadMeasurement(filepath_raw=fr.name, filepath_clean=fc.name, filepath_features=ff.name)
+    print("fr:", str(fr))
+    print("fc:", str(fc))
+    print("ff:", str(ff))
+    db_handler.uploadMeasurement(filepath_raw=str(fr), filepath_clean=str(fc), filepath_features=str(ff))
     clear_results_folder()
 
 
