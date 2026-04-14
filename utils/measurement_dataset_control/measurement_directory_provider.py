@@ -47,7 +47,7 @@ class MeasurementDirectoryProvider:
         """
         folder_path = Path(tempfile.mkdtemp())
         shutil.unpack_archive(MEASUREMENT_ZIP_PATH, folder_path)
-        return Path
+        return folder_path
     
     def __resolve_folder_path(self, target: MeasurementType) -> Path:
         """

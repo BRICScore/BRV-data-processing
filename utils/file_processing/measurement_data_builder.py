@@ -37,6 +37,7 @@ class MeasurementDataBuilder:
                 The type of the measurement contained in the target file.
 
             Returns
+            ----------
                 Nothing
         """
         func = FileProcessingFunctionProvider.provide_function(target)
@@ -58,6 +59,7 @@ class MeasurementDataBuilder:
                 Hook to the opened file.
 
             Returns
+            ----------
                 True if metadata is present, False if not.
         """
         line = filehook.readline()
@@ -75,6 +77,7 @@ class MeasurementDataBuilder:
                 Hook to the opened file.
 
             Returns
+            ----------
                 True if metadata is present, False if not.
         """
         line = filehook.readline()
@@ -92,6 +95,7 @@ class MeasurementDataBuilder:
                 Dictionary to be unpacked into a MeasurementMetadata object.
 
             Returns
+            ----------
                 Nothing
         """
         self.data.metadata = MeasurementMetadata(**jsondict)
@@ -107,6 +111,7 @@ class MeasurementDataBuilder:
                 Hook to the opened file.
 
             Returns
+            ----------
                 Nothing
         """
         if ("raw" in filehook.name):
