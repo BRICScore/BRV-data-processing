@@ -10,6 +10,7 @@ from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 import seaborn as sns
+from utils.config import *
 
 sys.path.append("feature_processing")
 import json
@@ -34,7 +35,7 @@ class FeatureData():
 
 def visualize_data():
     feature_data = FeatureData()
-    create_indices_for_features(feature_data)
+    # create_indices_for_features(feature_data)
 
     feature_data.features = feature_loading(feature_data)
     # extract_eigenvalues(feature_data)
@@ -116,9 +117,9 @@ def SVM_validation(feature_data):
 
         plt.show()
 
-def create_indices_for_features(feature_data):
+def create_indices_for_features(feature_data, filename):
     record = None
-    with open("./features/extracted_features.jsonl", "r") as file:
+    with open(FEATURES_PATH+'/'+filename, "r") as file:
         record = file.readline()
     i = 0
     json_line = json.loads(record)
@@ -133,9 +134,10 @@ def create_indices_for_features(feature_data):
             feature_data.feature_keys[i] = key
             i += 1
 
-def parse_features_line(line, feature_data):
+def parse_features_line(line, feature_data, filename):
     feature_vector = []
-    person = None
+    temp = filename.split('_')
+    person = temp[2][:2]
     for key in line:
         if isinstance(line[key], list):
             for val in line[key]:
@@ -161,15 +163,22 @@ def parse_features_line(line, feature_data):
 
 def feature_loading(feature_data):
     features = []
-    with open("./features/extracted_features.jsonl", "r") as file:
-        record = file.readline()
-        while record:
-            json_record = json.loads(record)
-            feature_vector = parse_features_line(json_record, feature_data)
-            features.append(feature_vector)
-            record = file.readline()
+    last_filename: str = 'extracted_features.jsonl'
+    with os.scandir(FEATURES_PATH) as es:
+        for e in es:
+            print(e.name)
+            if e.is_file() and e.name.endswith('.jsonl'):
+                last_filename = e.name
+                with open(e.path, encoding='utf-8') as file:
+                    record = file.readline()
+                    while record:
+                        json_record = json.loads(record)
+                        feature_vector = parse_features_line(json_record, feature_data, e.name)
+                        features.append(feature_vector)
+                        record = file.readline()
     feature_data.feature_count = len(features[0])
-    feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"} ###########TODO############
+    feature_data.person_colors = {"JD": "orange", "MJ": "green", "MK": "blue", "DS": "red"} ###########TODO############
+    create_indices_for_features(feature_data, last_filename)
     return np.array(features)
 
 def standarize_data(feature_data):
@@ -204,8 +213,11 @@ def MDS_algorithm(feature_data):
     print("MDS result")
     plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
     for person in feature_data.person_initials:
-        records = feature_data.features_mds[feature_data.person_indices[person]]
+        indices = feature_data.person_indices[person]
+        records = feature_data.features_mds[indices]
         plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
+        for i, record in enumerate(records):
+            plt.text(record[0], record[1], str(indices[i]))
     plt.legend(feature_data.person_initials)
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
