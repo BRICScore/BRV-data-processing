@@ -285,7 +285,7 @@ def plot_pca_data(feature_data):
         plt.ylabel('Feature 2')
         plt.show()
     if NO_OF_FEATURES_AFTER_ALG >= 3:
-        feature_data.person_colors = {"JD_sit": "red", "MJ_sit": "green", "MK_sit": "blue"}
+        feature_data.person_colors = {"DS": "red", "MJ": "green", "MK": "blue", "JD": "orange"}
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
