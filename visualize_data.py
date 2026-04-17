@@ -33,23 +33,24 @@ class FeatureData():
         self.person_indices = {} # dictionary holding arrays of indices in feature data for people
         self.person_initials = [] # array holding all initials for labels in legend
 
-def visualize_data():
+def visualize_data(final_feature_count=None):
     feature_data = FeatureData()
     # create_indices_for_features(feature_data)
 
     feature_data.features = feature_loading(feature_data)
     # extract_eigenvalues(feature_data)
     MDS_algorithm(feature_data)
-    PCA_algorithm(feature_data)
+    final_feature_count = PCA_algorithm(feature_data, final_feature_count)
+    print("Final feature count after reduction:",final_feature_count)
     plot_pca_data(feature_data)
 
     # accuracy measuring part
     # SVM
-    if NO_OF_FEATURES_AFTER_ALG == 2:
+    if final_feature_count == 2:
         SVM_validation(feature_data=feature_data)
 
     # heatmap
-    plot_heatmap(feature_data=feature_data)
+    # plot_heatmap(feature_data=feature_data)
 
 def plot_heatmap(feature_data):
     scaled_features = MinMaxScaler().fit_transform(feature_data.features)
@@ -66,7 +67,7 @@ def plot_heatmap(feature_data):
     plt.show()
 
 def SVM_validation(feature_data):
-    # print(feature_data.features_pca)
+    print("--------",feature_data.features_pca.shape)
     for pair in list(itertools.combinations(feature_data.person_initials, 2)):
         person1, person2 = pair
         records1 = feature_data.features_pca[feature_data.person_indices[person1]]
@@ -199,6 +200,21 @@ def calculate_covariance_matrix(feature_data):
     A /= no_of_data_points-1
     return A
 
+def calculate_reduction_feature_count(variance_data):
+    print(np.cumsum(variance_data))
+    i = 1
+    features_after_reduction = 0
+    max_length = len(variance_data)
+    cum_variance: np.float64 = np.float64(0.0)
+    i = 0
+    while cum_variance < CUMULATIVE_VARIANCE_THRESHOLD:
+        features_after_reduction += 1
+        cum_variance += variance_data[i]
+        i += 1
+        if features_after_reduction == max_length:
+            break
+    return features_after_reduction
+
 def MDS_algorithm(feature_data):
     X = feature_data.features
     X_scaled = StandardScaler().fit_transform(X)
@@ -224,30 +240,39 @@ def MDS_algorithm(feature_data):
     plt.show()
     print()
 
-def PCA_algorithm(feature_data):
+def PCA_algorithm(feature_data, final_feature_count):
     # standarize_data(feature_data)
     X = feature_data.features
     X_centered = X - np.mean(X, axis=0)
     cov = np.cov(X_centered, rowvar=False)
     eigvals, eigvecs = np.linalg.eigh(cov)
     eigvals = eigvals[::-1]
-    print(eigvals)
+    # print(eigvals)
     scaled_features = StandardScaler().fit_transform(feature_data.features)
-    pca = PCA(n_components=NO_OF_FEATURES_AFTER_ALG)
+    pca: PCA
+    if final_feature_count:
+        pca = PCA(n_components=final_feature_count)
+    else:
+        pca = PCA()
     feature_data.features_pca = pca.fit_transform(scaled_features)
-    i = 1
-    for feature_direction in pca.components_:
-        print(f"Feature {i} direction values:", feature_direction)
-        sorted_indices = np.argsort(np.abs(feature_direction))[::-1]
-        # print(feature_data.feature_keys)
-        print(f"Feature {i} importance in each direction:", [feature_data.feature_keys[k] for k in sorted_indices])
-        i += 1
-        print()
+    features_after_reduction: int
+    if final_feature_count:
+        features_after_reduction = final_feature_count
+    else:
+        features_after_reduction = calculate_reduction_feature_count(variance_data=pca.explained_variance_ratio_)
+    if False:
+        for i, feature_direction in enumerate(pca.components_):
+            print(f"Feature {i} direction values:", feature_direction)
+            sorted_indices = np.argsort(np.abs(feature_direction))[::-1]
+            # print(feature_data.feature_keys)
+            print(f"Feature {i} importance in each direction:", [feature_data.feature_keys[k] for k in sorted_indices])
+            print()
     
     eigenvalues = pca.explained_variance_
-    print("Eigenvalues:", eigenvalues)
+    # print("Eigenvalues:", eigenvalues)
     sorted_indices = np.argsort(np.abs(eigenvalues))[::-1]
     # print("Eigenvalues sorted:", [feature_data.feature_keys[k] for k in sorted_indices])
+    return features_after_reduction
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
