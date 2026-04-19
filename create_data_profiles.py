@@ -741,7 +741,15 @@ def generate_breathing_signals(profiles):
         # plt.plot(generated_timestamps, generated_signal[0], label=f'Generated Breathing Signal - {person}', linewidth=2.0, alpha=0.5, color="blue")
         plt.title(f"breathing signal gen - {person}")
         plt.show()
-       
+
+def create_breathing_animation(plot_enabled: bool):
+    pass
+    # load clean files
+    # ---------------
+    # create separate subplots for each person
+    # ---------------
+    # animate them according to data
+
 def parser_setup():
     parser = argparse.ArgumentParser(description="Data parser and feature extractor")
 
@@ -786,6 +794,7 @@ def main():
         generate_breathing_signals(people_profiles)
 
     create_profile_from_features(plot_enabled)
+    create_breathing_animation(plot_enabled)
 
 if __name__ == "__main__":
     main()

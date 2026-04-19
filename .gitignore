@@ -212,3 +212,4 @@ __marimo__/
 /.vscode
 *.jsonl
 /workfiles
+test.py
