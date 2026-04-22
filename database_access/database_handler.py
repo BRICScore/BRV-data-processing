@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 import dotenv
-from input_measurement_metadata import input_measurement_metadata
+from utils.input_measurement_metadata import input_measurement_metadata
 from dataclasses import asdict
 
 class DatabaseHandler:

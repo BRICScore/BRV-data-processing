@@ -65,7 +65,7 @@ class MeasurementDataBuilder:
         line = filehook.readline()
         jsonline = json.loads(line)
         filehook.seek(0)
-        return "_id" in jsonline
+        return "filepath_raw" in jsonline
 
     def __consume_metadata(self, filehook: TextIO) -> None:
         """

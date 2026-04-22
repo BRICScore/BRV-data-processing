@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Literal
 import os
-from config import MEASUREMENT_ZIP_PATH
-import measurement_directory_provider as mdp
+from utils.config import MEASUREMENT_ZIP_PATH
+import utils.measurement_dataset_control.measurement_directory_provider as mdp
 
 class MeasurementDatasetHook:
     """
@@ -16,16 +16,13 @@ class MeasurementDatasetHook:
     """
     
     def __init__(self, target: mdp.MeasurementType):
-        try:
-            self.provider = mdp.MeasurementDirectoryProvider()
-            self.folder_path = self.provider.provide_directory(target)
-            self.files = [name for name in os.listdir(self.folder_path) if os.path.isfile(name)]
-            self.number_of_files = len(self.files)  
-            self.index = -1
-            
-        except Exception:
-            raise Exception("Missing a measurement zip directory or target invalid")
         
+        self.provider = mdp.MeasurementDirectoryProvider()
+        self.folder_path = self.provider.provide_directory(target)
+        self.files = [self.folder_path / Path(name) for name in os.listdir(self.folder_path)]
+        self.number_of_files = len(self.files)  
+        self.index = -1
+            
     def __iter__(self):
         return self
     
