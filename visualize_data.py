@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import itertools
 import sys
-import math
 from typing import Optional
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -11,6 +10,10 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 import seaborn as sns
 from utils.config import *
+
+from utils.measurement_dataset_control import MeasurementDatasetHook
+from utils.file_processing.measurement_data_builder import MeasurementDataBuilder
+from data_containers import MeasurementData
 
 sys.path.append("feature_processing")
 import json
@@ -33,11 +36,16 @@ class FeatureData():
         self.person_indices = {} # dictionary holding arrays of indices in feature data for people
         self.person_initials = [] # array holding all initials for labels in legend
 
+def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
+    pass
+    return np.array([])
+
 def visualize_data(final_feature_count=None):
     feature_data = FeatureData()
     # create_indices_for_features(feature_data)
 
-    feature_data.features = feature_loading(feature_data)
+    # feature_data.features = feature_loading(feature_data)
+    feature_data.features = load_features_from_database_zip(feature_data)
     # extract_eigenvalues(feature_data)
     MDS_algorithm(feature_data)
     final_feature_count = PCA_algorithm(feature_data, final_feature_count)
@@ -178,7 +186,7 @@ def feature_loading(feature_data):
                         features.append(feature_vector)
                         record = file.readline()
     feature_data.feature_count = len(features[0])
-    feature_data.person_colors = {"JD": "orange", "MJ": "green", "MK": "blue", "DS": "red"} ###########TODO############
+    # feature_data.person_colors = {"JD": "orange", "MJ": "green", "MK": "blue", "DS": "red"} ###########TODO############
     create_indices_for_features(feature_data, last_filename)
     return np.array(features)
 
