@@ -37,16 +37,57 @@ class FeatureData():
         self.person_initials = [] # array holding all initials for labels in legend
 
 def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
-    pass
-    return np.array([])
+    combined_features: np.ndarray = np.array([0 for x in range(23)]) #just so vstack works - TODO
+    hook = MeasurementDatasetHook(target="features")
+    measurement_data = MeasurementData()
+    measurement_data_builder = MeasurementDataBuilder(measurement_data_container=measurement_data)
+    final_filepath: Optional[Path] = None
+    for filepath in hook:
+        measurement_data_builder.build_data(filepath=filepath, target="features")
+        current_file_features = []
+        length = 0
+        for key, value in measurement_data.data_features.__dict__.items():
+            length = len(value)
+            if value.ndim == 1:
+                print(value)
+                current_file_features.append(value)
+            elif value.ndim == 2:
+                for i in range(value.shape[1]): #for every column
+                    print(value[:,i])
+                    current_file_features.append(value[:,i])
+        combined_features = np.vstack((combined_features, np.array(current_file_features).T))
+
+        # person = "test"
+        person = measurement_data.metadata.labels.person_data.person_id
+
+        if person not in feature_data.person_initials:
+            feature_data.person_initials.append(person)
+            color = random.randrange(0, 2**24)
+            hex_color = hex(color)
+            color_part = hex_color[2:]
+            while len(color_part) < 6:
+                    color_part = "0" + color_part
+            rand_color = "#" + color_part
+            feature_data.person_colors[person] = rand_color
+            feature_data.person_indices[person] = []
+        for index in range(length):
+            feature_data.person_indices[person].append(feature_data.feature_index + index)
+        feature_data.feature_index += length
+        final_filepath = filepath
+
+    if final_filepath:
+        create_indices_for_features(feature_data=feature_data, filepath=final_filepath)
+
+    return np.array(combined_features[1:,:])
 
 def visualize_data(final_feature_count=None):
     feature_data = FeatureData()
-    # create_indices_for_features(feature_data)
-
     # feature_data.features = feature_loading(feature_data)
+    # create_indices_for_features(feature_data)
     feature_data.features = load_features_from_database_zip(feature_data)
     # extract_eigenvalues(feature_data)
+    print(feature_data.person_indices)
+    print(len(feature_data.person_indices["test"]))
     MDS_algorithm(feature_data)
     final_feature_count = PCA_algorithm(feature_data, final_feature_count)
     print("Final feature count after reduction:",final_feature_count)
@@ -126,9 +167,10 @@ def SVM_validation(feature_data):
 
         plt.show()
 
-def create_indices_for_features(feature_data, filename):
+def create_indices_for_features(feature_data, filepath):
     record = None
-    with open(FEATURES_PATH+'/'+filename, "r") as file:
+    with open(filepath, "r") as file:
+        record = file.readline()
         record = file.readline()
     i = 0
     json_line = json.loads(record)
