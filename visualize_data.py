@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import itertools
 import sys
+import argparse
 from typing import Optional
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -36,12 +37,21 @@ class FeatureData():
         self.person_indices = {} # dictionary holding arrays of indices in feature data for people
         self.person_initials = [] # array holding all initials for labels in legend
 
+def parser_setup():
+    parser = argparse.ArgumentParser(description="Visualization work mode information")
+
+    parser.add_argument('--local', action='store_true',
+                    help='A boolean switch for local files instead of files from database zip')
+    return parser
+
 def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
-    combined_features: np.ndarray = np.array([0 for x in range(23)]) #just so vstack works - TODO
+    combined_features: np.ndarray = np.array([])
     hook = MeasurementDatasetHook(target="features")
     measurement_data = MeasurementData()
     measurement_data_builder = MeasurementDataBuilder(measurement_data_container=measurement_data)
     final_filepath: Optional[Path] = None
+
+    first_go = True
     for filepath in hook:
         measurement_data_builder.build_data(filepath=filepath, target="features")
         current_file_features = []
@@ -49,16 +59,19 @@ def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
         for key, value in measurement_data.data_features.__dict__.items():
             length = len(value)
             if value.ndim == 1:
-                print(value)
                 current_file_features.append(value)
             elif value.ndim == 2:
                 for i in range(value.shape[1]): #for every column
-                    print(value[:,i])
                     current_file_features.append(value[:,i])
+        if first_go:
+            first_go = False
+            # vstack requires uniform dimensions across every dimensions except the one stacked
+            # so in order for the loop to work we need to define an empty row that we omit later in return
+            combined_features = np.empty(shape=(1,len(current_file_features)))
         combined_features = np.vstack((combined_features, np.array(current_file_features).T))
 
-        # person = "test"
-        person = measurement_data.metadata.labels.person_data.person_id
+        person = "test"
+        # person = measurement_data.metadata.labels.person_data.person_id
 
         if person not in feature_data.person_initials:
             feature_data.person_initials.append(person)
@@ -78,16 +91,19 @@ def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
     if final_filepath:
         create_indices_for_features(feature_data=feature_data, filepath=final_filepath)
 
-    return np.array(combined_features[1:,:])
+    return np.array(combined_features[1:,:]) #skip the empty row
 
 def visualize_data(final_feature_count=None):
+    parser = parser_setup()
+    args = parser.parse_args()
+
     feature_data = FeatureData()
-    # feature_data.features = feature_loading(feature_data)
-    # create_indices_for_features(feature_data)
-    feature_data.features = load_features_from_database_zip(feature_data)
+    if args.local:
+        feature_data.features = feature_loading(feature_data=feature_data)
+    else:
+        feature_data.features = load_features_from_database_zip(feature_data=feature_data)
     # extract_eigenvalues(feature_data)
-    print(feature_data.person_indices)
-    print(len(feature_data.person_indices["test"]))
+
     MDS_algorithm(feature_data)
     final_feature_count = PCA_algorithm(feature_data, final_feature_count)
     print("Final feature count after reduction:",final_feature_count)
@@ -170,7 +186,7 @@ def SVM_validation(feature_data):
 def create_indices_for_features(feature_data, filepath):
     record = None
     with open(filepath, "r") as file:
-        record = file.readline()
+        record = file.readline() # skip metadata - works with files without metadata if the file is 2 segments long
         record = file.readline()
     i = 0
     json_line = json.loads(record)
@@ -228,8 +244,8 @@ def feature_loading(feature_data):
                         features.append(feature_vector)
                         record = file.readline()
     feature_data.feature_count = len(features[0])
-    # feature_data.person_colors = {"JD": "orange", "MJ": "green", "MK": "blue", "DS": "red"} ###########TODO############
-    create_indices_for_features(feature_data, last_filename)
+    feature_data.person_colors = {"JD": "orange", "MJ": "green", "MK": "blue", "DS": "red"} ###########TODO############
+    create_indices_for_features(feature_data, FEATURES_PATH+'/'+last_filename)
     return np.array(features)
 
 def standarize_data(feature_data):
