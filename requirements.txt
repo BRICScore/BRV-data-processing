@@ -5,4 +5,4 @@ scikit-learn
 seaborn
 requests
 pyopenssl
-dacite
+pydantic

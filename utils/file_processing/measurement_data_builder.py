@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, TextIO
 import json
 from utils.config import MEASUREMENT_ZIP_PATH
-import dacite
 from . import FileProcessingFunctionProvider
 
 class MeasurementDataBuilder:
@@ -99,7 +98,7 @@ class MeasurementDataBuilder:
             ----------
                 Nothing
         """
-        self.data.metadata = dacite.from_dict(MeasurementMetadata, jsondict, config=dacite.Config(type_hooks={Path: Path}))
+        self.data.metadata = MeasurementMetadata(**jsondict)
         return
     
     def __correct_paths(self, filehook: TextIO) -> None:
