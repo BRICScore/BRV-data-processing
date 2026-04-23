@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 import os
-from utils import MeasurementDirectoryProvider, MEASUREMENT_ZIP_PATH
+from . import MeasurementDirectoryProvider
 from brics_types import MeasurementType
 class MeasurementDatasetHook:
     """
