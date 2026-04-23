@@ -1,9 +1,8 @@
 from pathlib import Path
 from typing import Literal
 import os
-from utils.config import MEASUREMENT_ZIP_PATH
-import utils.measurement_dataset_control.measurement_directory_provider as mdp
-
+from utils import MeasurementDirectoryProvider, MEASUREMENT_ZIP_PATH
+from brics_types import MeasurementType
 class MeasurementDatasetHook:
     """
             Class providing an iterable interface for accessing files inside a measurement zip file of a chosen type.
@@ -15,9 +14,9 @@ class MeasurementDatasetHook:
 
     """
     
-    def __init__(self, target: mdp.MeasurementType):
+    def __init__(self, target: MeasurementType):
         
-        self.provider = mdp.MeasurementDirectoryProvider()
+        self.provider = MeasurementDirectoryProvider()
         self.folder_path = self.provider.provide_directory(target)
         self.files = [self.folder_path / Path(name) for name in os.listdir(self.folder_path)]
         self.number_of_files = len(self.files)  

@@ -47,5 +47,4 @@ CUMULATIVE_VARIANCE_THRESHOLD = 0.95 # part of variance (information) to be left
 MODE_BREATH_COUNT = 5 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
 SIM_MINUTES_COUNT = 2
 
-#paths for handling of the measurement zip files
-MEASUREMENT_ZIP_PATH = pathlib.Path.home() / "Downloads" / "measurements_dataset.zip"
+MEASUREMENT_ZIP_PATH = pathlib.Path.home() / "Downloads" / "measurements_dataset.zip" #paths for handling of the measurement zip files

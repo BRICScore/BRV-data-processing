@@ -2,7 +2,7 @@ from typing import Literal
 from pathlib import Path
 import tempfile
 import shutil
-from utils.config import MEASUREMENT_ZIP_PATH
+from utils import MEASUREMENT_ZIP_PATH
 from brics_types import MeasurementType
 
 
@@ -64,5 +64,11 @@ class MeasurementDirectoryProvider:
         """
         resolved_folder_path = self.folder_path / target
         return resolved_folder_path
+
+    def __del__(self):
+        """
+            Deconstructor for automatic deletion of the temporary directory.
+        """
+        shutil.rmtree(self.folder_path)
 
     

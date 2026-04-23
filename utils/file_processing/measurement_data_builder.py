@@ -1,10 +1,11 @@
 from brics_types import MeasurementType
 from data_containers import MeasurementData, MeasurementMetadata
-from .file_processing_function_provider import FileProcessingFunctionProvider
 from pathlib import Path
 from typing import Any, TextIO
 import json
-from utils.config import MEASUREMENT_ZIP_PATH
+from utils import MEASUREMENT_ZIP_PATH
+import dacite
+from . import FileProcessingFunctionProvider
 
 class MeasurementDataBuilder:
     """
@@ -98,7 +99,7 @@ class MeasurementDataBuilder:
             ----------
                 Nothing
         """
-        self.data.metadata = MeasurementMetadata(**jsondict)
+        self.data.metadata = dacite.from_dict(MeasurementMetadata, jsondict)
         return
     
     def __correct_paths(self, filehook: TextIO) -> None:
