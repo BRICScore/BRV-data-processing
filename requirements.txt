@@ -4,3 +4,5 @@ matplotlib
 scikit-learn
 seaborn
 requests
+pyopenssl
+pydantic

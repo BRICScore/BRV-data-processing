@@ -12,7 +12,7 @@ import pathlib
 from matplotlib import patches
 import dotenv
 import seaborn as sns
-import pathlib
+from pathlib import Path
 
 RECORD_COUNT = 3000
 MAX_24B = 2**23 - 1
@@ -42,9 +42,9 @@ MIN_DISTANCE = 30 # minimum distance between peaks in breath separation
 INHALE_INDEX = 0
 EXHALE_INDEX = 2
 MIN_INHALE_OR_EXHALE_LENGTH = 500.0
+CUMULATIVE_VARIANCE_THRESHOLD = 0.95 # part of variance (information) to be left after feature reduction
 
 MODE_BREATH_COUNT = 5 # for the data we have as for 11.03.2026 22:06 above 7 we get some strange breaths
 SIM_MINUTES_COUNT = 2
 
-#paths for handling of the measurement zip files
-MEASUREMENT_ZIP_PATH = pathlib.Path.home() / "Downloads" / "measurements_dataset.zip"
+MEASUREMENT_ZIP_PATH = pathlib.Path.home() / "Downloads" / "measurements_dataset.zip" #paths for handling of the measurement zip files

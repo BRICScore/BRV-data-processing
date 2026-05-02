@@ -1,8 +1,10 @@
 {
-    "python.analysis.extraPaths": [
-        "./data_processing",
-        "./utils",
-        "./feature_processing"
-    ],
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+  "python.analysis.extraPaths": [
+    "./data_processing",
+    "./utils",
+    "./feature_processing",
+    "./brics_types"
+  ],
+  "python.languageServer": "Pylance",
+  "python-envs.defaultEnvManager": "ms-python.python:system"
 }
