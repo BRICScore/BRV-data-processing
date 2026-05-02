@@ -1,9 +1,7 @@
 from typing import Any
-
+import certifi
 import requests
 import os
-import json
-import time
 from pathlib import Path
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
@@ -61,9 +59,9 @@ class DatabaseHandler:
             This function will result in a files being uploaded into the database and creation of a record corresponding to them.
         """
 
-        measurement_metadata_dict = asdict(input_measurement_metadata([filepath_raw, filepath_clean, filepath_features]))
+        measurement_metadata_dict = (input_measurement_metadata([filepath_raw, filepath_clean, filepath_features])).model_dump_json(by_alias=True)
         
-        form_data = {"measurement_metadata": json.dumps(measurement_metadata_dict, default=str)}
+        form_data = {"measurement_metadata": measurement_metadata_dict}
 
         with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean, open(filepath_features, "rb") as file_features:
             files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean, "measurement_file_features": file_features}

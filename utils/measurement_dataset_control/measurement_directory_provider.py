@@ -2,7 +2,7 @@ from typing import Literal
 from pathlib import Path
 import tempfile
 import shutil
-from utils import MEASUREMENT_ZIP_PATH
+from utils.config import MEASUREMENT_ZIP_PATH
 from brics_types import MeasurementType
 
 

@@ -70,8 +70,8 @@ def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
             combined_features = np.empty(shape=(1,len(current_file_features)))
         combined_features = np.vstack((combined_features, np.array(current_file_features).T))
 
-        person = "test"
-        # person = measurement_data.metadata.labels.person_data.person_id
+        # person = "test"
+        person = measurement_data.metadata.labels.person_data.person_id
 
         if person not in feature_data.person_initials:
             feature_data.person_initials.append(person)
