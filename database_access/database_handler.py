@@ -77,7 +77,7 @@ class DatabaseHandler:
                         arcname=file.relative_to(tmp_dir / "dataset")
                     )
 
-        with open(filepath_raw, "rb") as file_zip:
+        with open(tmp_dir / "zipped.zip", "rb") as file_zip:
             files = {"measurement_file_zip": file_zip}
             r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
