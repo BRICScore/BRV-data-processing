@@ -1,5 +1,4 @@
 from typing import Any
-import certifi
 import requests
 import os
 from pathlib import Path
@@ -8,6 +7,9 @@ from requests.adapters import HTTPAdapter
 import dotenv
 from utils.input_measurement_metadata import input_measurement_metadata
 from dataclasses import asdict
+import tempfile
+import shutil
+from zipfile import ZipFile, ZIP_DEFLATED
 
 class DatabaseHandler:
     """
@@ -62,9 +64,21 @@ class DatabaseHandler:
         measurement_metadata_dict = (input_measurement_metadata([filepath_raw, filepath_clean, filepath_features])).model_dump_json(by_alias=True)
         
         form_data = {"measurement_metadata": measurement_metadata_dict}
+        tmp_dir = Path(tempfile.mkdtemp())
+        (tmp_dir / "dataset").mkdir()
+        shutil.copy(filepath_raw, tmp_dir / "dataset" / "raw")
+        shutil.copy(filepath_clean, tmp_dir / "dataset" / "clean")
+        shutil.copy(filepath_features, tmp_dir / "dataset" / "features")
+        with ZipFile(tmp_dir / "zipped.zip", "w", compression=ZIP_DEFLATED, compresslevel=9) as zf:
+            for file in (tmp_dir / "dataset").rglob("*"):
+                if file.is_file():
+                    zf.write(
+                        file,
+                        arcname=file.relative_to(tmp_dir / "dataset")
+                    )
 
-        with open(filepath_raw, "rb") as file_raw, open(filepath_clean, "rb") as file_clean, open(filepath_features, "rb") as file_features:
-            files = {"measurement_file_raw": file_raw, "measurement_file_clean": file_clean, "measurement_file_features": file_features}
+        with open(filepath_raw, "rb") as file_zip:
+            files = {"measurement_file_zip": file_zip}
             r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
         r.raise_for_status()
@@ -128,7 +142,7 @@ class DatabaseHandler:
             "weight_max" : weight_max,
             "height_min" : height_min,
             "height_max" : height_max
-        }    
+        }
         
         r = self._session.get('https://brics-api.electimore.xyz/measurement/download', params=query_data)
 
