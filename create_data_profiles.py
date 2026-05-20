@@ -631,7 +631,7 @@ def create_profile_from_features(plot_enabled=False):
         This function has no side effects.
     """
     feature_data = FeatureData()
-    create_indices_for_features(feature_data)
+    create_indices_for_features(feature_data, "./features/extracted_features.jsonl")
 
     feature_data.features = feature_loading(feature_data)
     # print(feature_data.person_indices)
@@ -750,25 +750,11 @@ def create_breathing_animation(plot_enabled: bool):
     # ---------------
     # animate them according to data
 
-def parser_setup():
-    parser = argparse.ArgumentParser(description="Data parser and feature extractor")
-
-    parser.add_argument('--plot', action='store_true',
-                    help='A boolean switch for plotting transformations')
-    
-    parser.add_argument('--debugplot', action='store_true',
-                    help='A boolean switch for plotting while debugging')
-    
-    parser.add_argument('--gen', action='store_true',
-                    help='A boolean switch for breathing signal generator')
-
-    return parser
-
 def main():
-    parser = parser_setup()
-    args = parser.parse_args()
-    plot_enabled = args.plot
-    gen_enabled = args.gen
+    gen = input("Signal generation: 0/1\n")
+    plot = input("Plotting: 0/1\n")
+    plot_enabled = plot == "1"
+    gen_enabled = gen == "1"
 
     people_profiles = create_data_profiles()
 
