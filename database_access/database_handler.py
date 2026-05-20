@@ -64,23 +64,28 @@ class DatabaseHandler:
         measurement_metadata_dict = (input_measurement_metadata([filepath_raw, filepath_clean, filepath_features])).model_dump_json(by_alias=True)
         
         form_data = {"measurement_metadata": measurement_metadata_dict}
-        tmp_dir = Path(tempfile.mkdtemp())
-        (tmp_dir / "dataset").mkdir()
-        shutil.copy(filepath_raw, tmp_dir / "dataset" / "raw")
-        shutil.copy(filepath_clean, tmp_dir / "dataset" / "clean")
-        shutil.copy(filepath_features, tmp_dir / "dataset" / "features")
-        with ZipFile(tmp_dir / "zipped.zip", "w", compression=ZIP_DEFLATED, compresslevel=9) as zf:
-            for file in (tmp_dir / "dataset").rglob("*"):
-                if file.is_file():
-                    zf.write(
-                        file,
-                        arcname=file.relative_to(tmp_dir / "dataset")
-                    )
+        try:
+            tmp_dir = Path(tempfile.mkdtemp())
+            (tmp_dir / "dataset").mkdir()
+            shutil.copy(filepath_raw, tmp_dir / "dataset" / "raw")
+            shutil.copy(filepath_clean, tmp_dir / "dataset" / "clean")
+            shutil.copy(filepath_features, tmp_dir / "dataset" / "features")
+            with ZipFile(tmp_dir / "zipped.zip", "w", compression=ZIP_DEFLATED, compresslevel=9) as zf:
+                for file in (tmp_dir / "dataset").rglob("*"):
+                    if file.is_file():
+                        zf.write(
+                            file,
+                            arcname=file.relative_to(tmp_dir / "dataset")
+                        )
+        except Exception:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
         with open(tmp_dir / "zipped.zip", "rb") as file_zip:
             files = {"measurement_file_zip": file_zip}
             r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
 
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        
         r.raise_for_status()
         print(r.status_code)
         print(r.text)
