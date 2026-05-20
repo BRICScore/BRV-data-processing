@@ -70,27 +70,11 @@ def clear_results_folder():
             if result.is_file():
                 os.remove(result.path)
 
-
-def parser_setup():
-    parser = argparse.ArgumentParser(description="Data parser and feature extractor")
-
-    parser.add_argument('input_file', type=str,
-                    help='A required argument containing input file for the programme')
-
-    parser.add_argument('--plot', action='store_true',
-                    help='A boolean switch for plotting transformations')
-    
-    parser.add_argument('--debugplot', action='store_true',
-                    help='A boolean switch for plotting while debugging')
-
-    return parser
-
 def main():
-    parser = parser_setup()
-    args = parser.parse_args()
-    input_file = args.input_file
-    plot_enabled = args.plot
-    debug_plot = args.debugplot
+    input_file_str = input("Raw input file name (with extension) located in the data folder:\n")
+    input_file = Path(input_file_str)
+    plot_enabled = input("Enable plotting 0/1\n") == "1"
+    debug_plot = input("Debug plot 0/1\n") == "1"
 
     measurement_data = MeasurementData()
     measurement_metadata = MeasurementMetadata()
