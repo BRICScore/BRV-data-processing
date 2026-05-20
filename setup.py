@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='brics-toolkit',
+    name='brics_toolkit',
     version='0.1',
     description='Toolkit for BRICS environment',
     author='BRICS Development team',
