@@ -1,8 +1,7 @@
 import sys, argparse, random
 from visualize_data import FeatureData, create_indices_for_features, feature_loading
 
-sys.path.append("utils")
-from config import *
+from brics_toolkit.utils.config import *
 
 def parse_jsonl_line(line):
     """

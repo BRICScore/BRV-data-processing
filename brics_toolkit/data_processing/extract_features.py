@@ -4,10 +4,10 @@ import json
 sys.path.append("feature_processing")
 sys.path.append("utils")
 
-from feature_extraction import *
-from config import *
-from data_containers import MeasurementMetadata
-from data_containers import MeasurementData
+from .feature_extraction import *
+from ..utils.config import *
+from ..data_containers import MeasurementMetadata
+from ..data_containers import MeasurementData
 from pathlib import Path
 
 RESULTS_PATH = './results'

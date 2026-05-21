@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from data_containers import *
-from config import *
+from ..data_containers import *
+from ..utils.config import *
 from mpl_toolkits.mplot3d import Axes3D
 
 # Class used to pass measurement calculated parameters locally

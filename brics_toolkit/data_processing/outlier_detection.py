@@ -1,6 +1,6 @@
-from config import *
+from ..utils.config import *
 
-from data_containers import BRVDataClean, BRVDataIntermediate
+from ..data_containers import BRVDataClean, BRVDataIntermediate
 
 def calculate_breaths(BRV_data_intermediate, target_adc):
     """
