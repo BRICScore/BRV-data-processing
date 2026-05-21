@@ -1,13 +1,12 @@
 import sys
-sys.path.append("utils")
 
-from config import *
+from brics_toolkit.utils.config import *
 import argparse
-from data_containers import BRVDataClean
-from data_containers import MeasurementData, MeasurementMetadata
-from data_processing.initial_data_processing import initial_data_processing
-from extract_features import extract_features
-from database_access.database_handler import DatabaseHandler
+from brics_toolkit.data_containers import BRVDataClean
+from brics_toolkit.data_containers import MeasurementData, MeasurementMetadata
+from brics_toolkit.data_processing.initial_data_processing import initial_data_processing
+from brics_toolkit.data_processing.extract_features import extract_features
+from brics_toolkit.database_access.database_handler import DatabaseHandler
 
 def split_data_into_segments(input_file : Path, BRV_data_clean : BRVDataClean):
     """

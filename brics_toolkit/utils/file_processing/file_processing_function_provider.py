@@ -1,5 +1,5 @@
-from brics_types import MeasurementType
-from data_containers import MeasurementData
+from ...brics_types import MeasurementType
+from ...data_containers import MeasurementData
 from typing import Callable, TextIO
 import json
 from numpy import array as nparray

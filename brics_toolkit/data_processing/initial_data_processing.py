@@ -6,11 +6,11 @@ sys.path.append("utils")
 sys.path.append("brics_types")
 sys.path.append("data_containers")
 
-from outlier_detection import *
+from ..data_processing.outlier_detection import *
 
-from data_containers import BRVDataIntermediate
-from data_containers import MeasurementData
-from config import *
+from ..data_containers import BRVDataIntermediate
+from ..data_containers import MeasurementData
+from ..utils.config import *
 
 
 

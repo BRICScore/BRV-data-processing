@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from brics_types import ActivityType
+from ..brics_types import ActivityType
 from .bio_data import BioData
 from typing import Optional
 

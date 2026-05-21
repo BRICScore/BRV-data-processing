@@ -1,9 +1,9 @@
-from brics_types import MeasurementType
-from data_containers import MeasurementData, MeasurementMetadata
+from ...brics_types import MeasurementType
+from ...data_containers import MeasurementData, MeasurementMetadata
 from pathlib import Path
 from typing import Any, TextIO
 import json
-from utils.config import MEASUREMENT_ZIP_PATH
+from ..config import MEASUREMENT_ZIP_PATH
 from . import FileProcessingFunctionProvider
 
 class MeasurementDataBuilder:

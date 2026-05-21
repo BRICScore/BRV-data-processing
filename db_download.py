@@ -1,7 +1,7 @@
 import sys
-sys.path.append("utils")
-from config import *
-from database_access.database_handler import *
+
+from brics_toolkit.utils.config import *
+from brics_toolkit.database_access.database_handler import *
 
 def main():
     dotenv.load_dotenv()

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
-from brics_types import ConditionType, GenderType
+from ..brics_types import ConditionType, GenderType
 
 class BioData(BaseModel):
     model_config = ConfigDict(validate_assignment=True)

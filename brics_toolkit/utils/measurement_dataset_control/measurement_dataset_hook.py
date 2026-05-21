@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 import os
 from . import MeasurementDirectoryProvider
-from brics_types import MeasurementType
+from ...brics_types import MeasurementType
 class MeasurementDatasetHook:
     """
             Class providing an iterable interface for accessing files inside a measurement zip file of a chosen type.

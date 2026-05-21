@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 import dotenv
-from utils.input_measurement_metadata import input_measurement_metadata
+from ..utils.input_measurement_metadata import input_measurement_metadata
 from dataclasses import asdict
 import tempfile
 import shutil

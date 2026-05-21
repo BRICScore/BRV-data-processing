@@ -10,11 +10,11 @@ from sklearn.manifold import MDS
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.svm import SVC
 import seaborn as sns
-from utils.config import *
+from brics_toolkit.utils.config import *
 
-from utils.measurement_dataset_control import MeasurementDatasetHook
-from utils.file_processing.measurement_data_builder import MeasurementDataBuilder
-from data_containers import MeasurementData
+from brics_toolkit.utils.measurement_dataset_control import MeasurementDatasetHook
+from brics_toolkit.utils.file_processing.measurement_data_builder import MeasurementDataBuilder
+from brics_toolkit.data_containers import MeasurementData
 
 sys.path.append("feature_processing")
 import json

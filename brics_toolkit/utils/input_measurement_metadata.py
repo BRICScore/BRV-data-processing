@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 from typing import Any
-from data_containers import MeasurementMetadata
-from brics_types import allowed_activity_types, allowed_gender_types, allowed_condition_types
+from ..data_containers import MeasurementMetadata
+from ..brics_types import allowed_activity_types, allowed_gender_types, allowed_condition_types
 import time
 
 
