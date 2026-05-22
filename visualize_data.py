@@ -42,6 +42,8 @@ def parser_setup():
 
     parser.add_argument('--local', action='store_true',
                     help='A boolean switch for local files instead of files from database zip')
+    parser.add_argument('--two_d', action='store_true',
+                    help='A boolean switch for setting the number of features for the PCA and MDS algorithms to reduce to 2')
     return parser
 
 def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
@@ -93,11 +95,12 @@ def load_features_from_database_zip(feature_data: FeatureData) -> np.ndarray:
 
     return np.array(combined_features[1:,:]) #skip the empty row
 
-def visualize_data(final_feature_count=None):
+def visualize_data():
     parser = parser_setup()
     args = parser.parse_args()
 
     feature_data = FeatureData()
+
     if args.local:
         feature_data.features = feature_loading(feature_data=feature_data)
     else:
@@ -105,6 +108,7 @@ def visualize_data(final_feature_count=None):
     # extract_eigenvalues(feature_data)
 
     MDS_algorithm(feature_data)
+    final_feature_count = (2 if args.two_d else None)
     final_feature_count = PCA_algorithm(feature_data, final_feature_count)
     print("Final feature count after reduction:",final_feature_count)
     plot_pca_data(feature_data)
@@ -293,14 +297,26 @@ def MDS_algorithm(feature_data):
 
     feature_data.features_mds = mds.fit_transform(X_scaled)
     print("MDS result")
-    plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
+    plt.title(f"Representing {len(feature_data.features[0])} features with {NO_OF_FEATURES_AFTER_ALG} using MDS")
     for person in feature_data.person_initials:
         indices = feature_data.person_indices[person]
         records = feature_data.features_mds[indices]
         plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
         for i, record in enumerate(records):
-            plt.text(record[0], record[1], str(indices[i]))
-    plt.legend(feature_data.person_initials)
+            pass # plt.text(record[0], record[1], str(indices[i]))
+    legend = [person.split("@")[0] for person in feature_data.person_initials]
+    plt.legend(legend)
+
+    means = np.mean(feature_data.features_mds, axis=0)
+    # std dev of each feature after reduction
+    deviations = np.std(feature_data.features_mds, axis=0)
+    z_score_limit = 3
+    plt.xlim((means[0]-z_score_limit*deviations[0], means[0]+z_score_limit*deviations[0])) # discard (do not display) values with z-scores bigger than 2
+    plt.ylim((means[1]-z_score_limit*deviations[1], means[1]+z_score_limit*deviations[1]))
+
+    z_score_limit = 3
+    plt.xlim((means[0]-z_score_limit*deviations[0], means[0]+z_score_limit*deviations[0])) # discard (do not display) values with z-scores bigger than 2
+    plt.ylim((means[1]-z_score_limit*deviations[1], means[1]+z_score_limit*deviations[1]))
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
     plt.show()
@@ -342,11 +358,25 @@ def PCA_algorithm(feature_data, final_feature_count):
 
 def plot_pca_data(feature_data):
     if NO_OF_FEATURES_AFTER_ALG == 2:
-        plt.title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        plt.title(f"Representing {len(feature_data.features[0])} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
         for person in feature_data.person_initials:
             records = feature_data.features_pca[feature_data.person_indices[person]]
             plt.scatter(records[:,0], records[:,1], c=feature_data.person_colors[person])
-        plt.legend(feature_data.person_initials)
+        legend = [person.split("@")[0] for person in feature_data.person_initials]
+        plt.legend(legend)
+
+        # setting the limits for display to discard outlier data
+        # means of each feature after reduction
+        means = np.mean(feature_data.features_pca, axis=0)
+        # print(means.shape)
+        #std dev of each feature after reduction
+        deviations = np.std(feature_data.features_pca, axis=0)
+        # print(deviations.shape)
+
+        z_score_limit = 3
+        plt.xlim((means[0]-z_score_limit*deviations[0], means[0]+z_score_limit*deviations[0])) # discard (do not display) values with z-scores bigger than 2
+        plt.ylim((means[1]-z_score_limit*deviations[1], means[1]+z_score_limit*deviations[1]))
+
         plt.xlabel('Feature 1')
         plt.ylabel('Feature 2')
         plt.show()
@@ -354,11 +384,12 @@ def plot_pca_data(feature_data):
         feature_data.person_colors = {"DS": "red", "MJ": "green", "MK": "blue", "JD": "orange"}
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
-        ax.set_title(f"Representing {feature_data.feature_count} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
+        ax.set_title(f"Representing {len(feature_data.features[0])} features with {NO_OF_FEATURES_AFTER_ALG} using PCA")
         for person in feature_data.person_initials:
             records = feature_data.features_pca[feature_data.person_indices[person]]
             ax.scatter(records[:,0], records[:,1], records[:,2], c=feature_data.person_colors[person])
-        ax.legend(feature_data.person_initials)
+        legend = [person.split("@")[0] for person in feature_data.person_initials]
+        ax.legend(legend)
         ax.set_xlabel('Feature 1')
         ax.set_ylabel('Feature 2')
         # ax.set_zlabel('Feature 3')
