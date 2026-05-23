@@ -596,7 +596,7 @@ def display_specgram(signal_data, target=TARGET_ADC, amplitude_resolution=10):
     plt.show()
     print(heat_array[0])
         
-def write_features_to_file(features, measurement_data, input_file):
+def write_features_to_file(features, measurement_data, output_file_path, model_flag=False):
     """
     This function writes features from the parameter into **extractred_features.jsonl** file.
     It also stores the features with appropriate labels taken from measurement_data labels.
@@ -614,17 +614,34 @@ def write_features_to_file(features, measurement_data, input_file):
     ------------
         Appends at the end of features file when called and puts the filename into metadata
     """
-    features_filename = str(measurement_data.metadata.filepath_clean)
-    temp = features_filename.split("\\")[-1]
-    temp = "features_"+temp
 
-    with open(f"./features/{temp}", "a") as o_f:
-        # print(json.dumps(features))
-        json.dump(features, o_f)
-        o_f.write("\n")
-    measurement_data.metadata.filepath_features = Path(f"./features/{temp}")
 
-def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
+    # print("output_file_path: ", output_file_path)
+    # print("output_file_path_2: ", output_file_path+"/"+temp)
+    if not model_flag:
+        temp = "features_" + output_file_path.split("\\")[-1]
+        temp = output_file_path.split("\\")[-1]
+        temp = "features_"+temp
+
+        with open(f"./features/{temp}", "a") as o_f:
+            # print(json.dumps(features))
+            json.dump(features, o_f)
+            o_f.write("\n")
+        measurement_data.metadata.filepath_features = Path(f"./features/{temp}")
+    else:
+        temp = "features_" + output_file_path.split("\\")[-1]
+        temp = output_file_path.split("\\")[-1]
+        temp = "features_"+temp
+        
+
+        with open(f"./data/identifier/features/{temp}", "a") as o_f:
+            # print(json.dumps(features))
+            json.dump(features, o_f)
+            o_f.write("\n")
+        measurement_data.metadata.filepath_features = Path(f"./data/identifier/features/{temp}")
+
+
+def basic_feature_extraction(measure_data, input_file="temp.jsonl", model_flag=False):
     """
     This function extracts all implemented features from the segment passed 
     and calls write_features_to_file
@@ -681,7 +698,7 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
     # {"cecha1": 1.3, "cecha2": 0.45, …, "cecha12": [0.1, 0.2, 0.3, 0.4, 0.5]}
     if False:
         plot_data(input_file, signal_data, avg_breath_depth)
-    write_features_to_file(features=features, measurement_data=measure_data, input_file=input_file)
+    write_features_to_file(features=features, measurement_data=measure_data, output_file_path=str(measure_data.metadata.filepath_clean), model_flag=model_flag)
 
     if False:
         plt.figure(figsize=(8,6))
@@ -695,5 +712,5 @@ def basic_feature_extraction(measure_data, input_file="temp.jsonl"):
         plt.ylabel("Relative share in deviation from average breath depth")
         plt.grid(True)
         plt.legend()
-        plt.savefig(f"./features/{input_file}_breath_track.png")
+        # plt.savefig(f"./features/{input_file}_breath_track.png")
         plt.show()

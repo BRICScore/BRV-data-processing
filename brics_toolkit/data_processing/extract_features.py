@@ -83,7 +83,7 @@ def load_measurement_data(measurement_data): # create dummy data before pipeline
         return measure_data
 
 
-def extract_features(measurement_data=None):
+def extract_features(measurement_data=None, features_path="./features", results_path=RESULTS_PATH, model_flag=False):
     """
     This function is responsible for delivering BRVDataFeatures to
     its parent class MeasurementData **<-TODO** by loading the contents of
@@ -110,10 +110,10 @@ def extract_features(measurement_data=None):
     measure_data = load_measurement_data(measurement_data=measurement_data)
     features_filename = str(measure_data.metadata.filepath_clean)
     temp = features_filename.split("\\")[-1]
-    with open(f"./features/{"features_"+temp}", "w"):
+    with open(f"{features_path}/{'features_'+temp}", "w"):
         pass
 
-    with os.scandir(RESULTS_PATH) as es:
+    with os.scandir(results_path) as es:
         for e in es:
             features = []
             print(e.name)
@@ -131,6 +131,6 @@ def extract_features(measurement_data=None):
                 NPFeatures = np.array(features)
                 measure_data.data_clean.adc_data = np.transpose(NPFeatures[:, 1:])
                 measure_data.data_clean.timestamps = np.transpose(NPFeatures[:, 0])
-                basic_feature_extraction(measure_data=measure_data, input_file=e.name)
+                basic_feature_extraction(measure_data=measure_data, input_file=e.name, model_flag=model_flag)
 
 # extract_features()
