@@ -1,3 +1,4 @@
 from .file_processing import MeasurementDataBuilder
 from .measurement_dataset_control import MeasurementDatasetHook, MeasurementDirectoryProvider
 from .input_measurement_metadata import input_measurement_metadata
+from .build_model_metadata import build_model_metadata

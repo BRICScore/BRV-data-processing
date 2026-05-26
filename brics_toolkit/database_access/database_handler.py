@@ -1,4 +1,3 @@
-from typing import Any
 import requests
 import os
 from pathlib import Path
@@ -6,7 +5,7 @@ from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 import dotenv
 from ..utils.input_measurement_metadata import input_measurement_metadata
-from dataclasses import asdict
+from ..utils.build_model_metadata import build_model_metadata
 import tempfile
 import shutil
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -187,3 +186,109 @@ class DatabaseHandler:
         r.raise_for_status()
         print(r.status_code)
         print(r.text)
+
+    def upload_model(self, filepath_weights: str, filepath_pth: str, filepath_scaler: str):
+        """
+            Upload model files to the database.
+
+            Parameters
+            ----------
+            filepath_weights: str
+                Path to file with weights
+            filepath_pth: str
+                Path to pth file
+            filepath_scaler: str
+                Path to file with scaler
+            
+            Returns
+            -------
+            none
+            
+            Side Effects
+            ------------
+            This function will result in a model record and files being uploaded to database, if they are correct.
+        """
+
+        form_data = build_model_metadata([filepath_weights, filepath_pth, filepath_scaler]).model_dump_json(by_alias=True)
+        try:
+            tmp_dir = Path(tempfile.mkdtemp())
+            (tmp_dir / "dataset").mkdir()
+            shutil.copy(filepath_weights, tmp_dir / "model" / "raw")
+            shutil.copy(filepath_pth, tmp_dir / "model" / "pth")
+            shutil.copy(filepath_scaler, tmp_dir / "model" / "scaler")
+            with ZipFile(tmp_dir / "zipped.zip", "w", compression=ZIP_DEFLATED, compresslevel=9) as zf:
+                for file in (tmp_dir / "dataset").rglob("*"):
+                    if file.is_file():
+                        zf.write(
+                            file,
+                            arcname=file.relative_to(tmp_dir / "dataset")
+                        )
+        except Exception:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        with open(tmp_dir / "zipped.zip", "rb") as file_zip:
+            files = {"model_zip": file_zip}
+            r = self._session.put('https://brics-api.electimore.xyz/models/upload', files=files, data=form_data)
+
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        r.raise_for_status()
+        print(r.status_code)
+        print(r.text)
+        return
+
+    def download_model(self):
+        """
+            Download model files from the database.
+
+            Parameters
+            ----------
+            none
+            
+            Returns
+            -------
+            none
+            
+            Side Effects
+            ------------
+            This function will result in a zip archive with model files being created in the user's Downloads directory, if it exists.
+        """
+        
+        r = self._session.get('https://brics-api.electimore.xyz/models/download')
+
+        r.raise_for_status()
+        print(r.status_code)
+        print(r.text)
+
+        path = Path.home() / "Downloads" / "model.zip"
+        if r.status_code == 200:
+            with open(path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        
+        return
+    
+    def delete_model(self):
+        """
+            Delete model record and files from database.
+
+            Parameters
+            ----------
+            none
+            
+            Returns
+            -------
+            none
+            
+            Side Effects
+            ------------
+            This function will result in a model record and files being permamently deleted, if they exist.
+        """
+        r = self._session.delete('https://brics-api.electimore.xyz/models/delete')
+
+        r.raise_for_status()
+        print(r.status_code)
+        print(r.text)
+        
+        return
