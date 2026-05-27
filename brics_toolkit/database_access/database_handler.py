@@ -81,7 +81,7 @@ class DatabaseHandler:
 
         with open(tmp_dir / "zipped.zip", "rb") as file_zip:
             files = {"measurement_file_zip": file_zip}
-            r = self._session.put('https://brics-api.electimore.xyz/measurement/upload', files=files, data=form_data)
+            r = self._session.put('https://brics-api.electimore.xyz/measurements/upload', files=files, data=form_data)
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
         
@@ -148,7 +148,7 @@ class DatabaseHandler:
             "height_max" : height_max
         }
         
-        r = self._session.get('https://brics-api.electimore.xyz/measurement/download', params=query_data)
+        r = self._session.get('https://brics-api.electimore.xyz/measurements/download', params=query_data)
 
         path = Path.home() / "Downloads" / "measurements_dataset.zip"
         if r.status_code == 200:
@@ -181,7 +181,7 @@ class DatabaseHandler:
         measurement_id = input("Fill id of measurement to delete: ")
 
         query_data["measurement_id"] = measurement_id 
-        r = self._session.delete('https://brics-api.electimore.xyz/measurement/delete', params=query_data, timeout=30)
+        r = self._session.delete('https://brics-api.electimore.xyz/measurements/delete', params=query_data, timeout=30)
 
         r.raise_for_status()
         print(r.status_code)
