@@ -26,7 +26,6 @@ def input_measurement_metadata(filepaths: list[str] = []) -> MeasurementMetadata
     metadata = MeasurementMetadata()
 
     print("MeasurementMetadata parameters for creation")
-    timestamp = time.time()
 
     if not filepaths:
         metadata.filepath_raw = Path(input("filepath_raw: "))
@@ -72,8 +71,8 @@ def input_measurement_metadata(filepaths: list[str] = []) -> MeasurementMetadata
     else:
         raise ValueError(f"invalid condition type: {condition}")
     
-    metadata.labels.person_data.weight = int(input("weight:"))
-    metadata.labels.person_data.height = int(input("height:"))
+    metadata.labels.person_data.weight = int(input("weight: "))
+    metadata.labels.person_data.height = int(input("height: "))
 
     return metadata
         

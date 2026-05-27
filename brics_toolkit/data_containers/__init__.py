@@ -5,5 +5,5 @@ from .brv_data_intermediate import BRVDataIntermediate
 from .measurement_data import MeasurementData
 from .measurement_labels import MeasurementLabels
 from .measurement_metadata import MeasurementMetadata
-
-__all__ = ["BioData", "BRVDataClean", "BRVDataFeatures", "BRVDataIntermediate", "MeasurementData", "MeasurementLabels", "MeasurementMetadata"]
+from .model_metadata import ModelMetadata
+__all__ = ["BioData", "BRVDataClean", "BRVDataFeatures", "BRVDataIntermediate", "MeasurementData", "MeasurementLabels", "MeasurementMetadata", "ModelMetadata"]
